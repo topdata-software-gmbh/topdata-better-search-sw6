@@ -6,4 +6,3 @@
 
     <import resource="../../Controller/**/*Controller.php" type="attribute" />
 </routes>
-</routes>
