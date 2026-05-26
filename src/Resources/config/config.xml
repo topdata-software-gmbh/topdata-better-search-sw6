@@ -4,11 +4,14 @@
     <card>
         <title>Basic Configuration</title>
         <title lang="de-DE">Grundeinstellungen</title>
-        
-        <input-field>
-            <name>example</name>
-            <label>Example Configuration</label>
-            <label lang="de-DE">Beispiel Konfiguration</label>
-        </input-field>
+
+        <component name="sw-entity-multi-id-select">
+            <name>excludedCategories</name>
+            <entity>category</entity>
+            <label>Excluded Categories from Search</label>
+            <label lang="de-DE">Von der Suche ausgeschlossene Kategorien</label>
+            <helpText>Products assigned to these categories will not be found via the storefront search.</helpText>
+            <helpText lang="de-DE">Produkte, die diesen Kategorien zugeordnet sind, werden nicht über die Storefront-Suche gefunden.</helpText>
+        </component>
     </card>
 </config>

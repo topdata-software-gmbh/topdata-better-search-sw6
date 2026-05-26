@@ -23,6 +23,12 @@
             <tag name="kernel.event_subscriber"/>
         </service>
 
+        <!-- Dynamic Storefront Search Exclusion Subscriber -->
+        <service id="Topdata\TopdataElasticsearchHacksSW6\Subscriber\SearchCriteriaSubscriber">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <tag name="kernel.event_subscriber"/>
+        </service>
+
         <!-- Command Line Control Suite Services -->
         <service id="Topdata\TopdataElasticsearchHacksSW6\Command\Command_ExportZeroResults">
             <argument type="service" id="Topdata\TopdataElasticsearchHacksSW6\Service\ZeroSearchService"/>
