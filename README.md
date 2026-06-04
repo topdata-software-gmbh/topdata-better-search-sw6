@@ -30,6 +30,23 @@ This plugin optimizes Elasticsearch tokenization on Shopware 6.7 to allow better
 
 ---
 
+## Administration Module: Zero Search Results
+
+The plugin ships with an admin panel module to view and manage zero-result search terms directly in the Shopware administration.
+
+* **Navigation:** Content → Zero Search Results
+* **Route:** `topdata.es.zero.search.list`
+* **Access:** Requires privilege `system.zero_search.viewer`
+
+The listing page shows all search terms that returned no products, displaying:
+* **Term** — the customer's search query
+* **Count** — how many times the term failed
+* **Last Searched / First Seen** — timestamps
+
+Entries can be sorted, paginated, and deleted directly from the admin grid.
+
+---
+
 ## Command Reference Guide: Synonym & Zero-Result Analytics
 
 This plugin contains a comprehensive suite of console commands to help merchants audit, optimize, and organize search synonyms.
