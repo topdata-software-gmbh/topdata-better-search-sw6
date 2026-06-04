@@ -1,0 +1,11 @@
+{
+    "topdata-es-zero-search": {
+        "title": "Zero Search Results",
+        "description": "Manage zero-result search terms",
+        "listTitle": "Search Terms",
+        "columnTerm": "Search Term",
+        "columnCount": "Count",
+        "columnLastSearchedAt": "Last Searched",
+        "columnCreatedAt": "First Seen"
+    }
+}

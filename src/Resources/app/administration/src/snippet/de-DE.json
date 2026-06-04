@@ -1,0 +1,11 @@
+{
+    "topdata-es-zero-search": {
+        "title": "Null-Suchergebnisse",
+        "description": "Verwaltung von Suchbegriffen ohne Ergebnisse",
+        "listTitle": "Suchbegriffe",
+        "columnTerm": "Suchbegriff",
+        "columnCount": "Anzahl",
+        "columnLastSearchedAt": "Zuletzt gesucht",
+        "columnCreatedAt": "Erstmals gesehen"
+    }
+}
