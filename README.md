@@ -1,126 +1,131 @@
-# Topdata Elasticsearch Hacks SW6
+# Topdata Better Search SW6
 
 ![Plugin Icon](src/Resources/config/plugin.png)
 
+[![GitHub](https://img.shields.io/badge/GitHub-topdata--better--search--sw6-blue?logo=github)](https://github.com/topdata-software-gmbh/topdata-better-search-sw6)
+
 ## Overview
-This plugin optimizes Elasticsearch tokenization on Shopware 6.7 to allow better matching on hyphenated or concatenated terms (such as `WC-Papier` matching `WC Papier`).
+
+Topdata Better Search is a highly configurable, multi-backend search engine for Shopware 6.7. It decouples storefront search from any single provider, enabling you to leverage **Elasticsearch**, **Meilisearch**, **Qdrant**, or the **Shopware Core** engine interchangeably — or in parallel.
+
+Built on a clean service abstraction layer, the plugin decorates the native `ProductSearchRoute` and `ProductSuggestRoute`, intercepting queries before they reach the database and routing them through your configured search backends.
 
 ## Features
-* Globally registers a `word_delimiter_graph` token filter in Elasticsearch settings.
-* Overrides default language analyzers (`sw_german_analyzer`, `sw_english_analyzer`, `sw_default_analyzer`) to split terms dynamically without breaking default stemmers.
-* **Synonym Suite**: Dynamically tracks failed storefront searches and offers a full suite of administrative CLI utilities to manage search synonym mappings.
-* **Category Search Exclusion**: Select categories (e.g., "Gratisartikel") directly in the plugin configuration to dynamically hide all assigned products from Storefront search and suggestion results, without breaking their layout on regular category pages.
+
+* **🔌 Pluggable Search Backends** — Swap search engines via a clean `SearchBackendInterface`. Ships with stubs for Shopware Core, Meilisearch, and Qdrant.
+* **⚡ Elasticsearch Analyzer Optimization** — Globally registers a `word_delimiter_graph` token filter for better matching on hyphenated/concatenated terms (e.g., `WC-Papier` matching `WC Papier`).
+* **📖 Synonym Management Suite** — Full CLI toolset to validate, import, export, list, delete, and clear synonym mappings.
+* **🔍 Zero-Result Tracking** — Automatically logs storefront searches that return no results for analysis and optimization.
+* **🚫 Category Search Exclusion** — Select categories in plugin configuration to dynamically hide assigned products from search and suggestion results.
+* **🧩 Symfony 7.4 Native Attributes** — Uses `#[AsDecorator]`, `#[TaggedIterator]`, `#[AutoconfigureTag]`, and `#[AsCommand]` throughout — no boilerplate XML.
+* **🎨 Administration Module** — View and manage zero-result search terms directly in the Shopware admin panel.
+
+## Future Vision
+
+This plugin is designed to grow into a unified search hub:
+
+- **Multi-Backend Fallback** — Query backends in priority order; if one returns no results, fall through to the next.
+- **Console-First Indexing** — `tdbs:index:rebuild` pushes product data to all configured custom backends.
+- **Extensible** — Add new backends by implementing `SearchBackendInterface` and tagging with `#[AutoconfigureTag('tdbs.search_backend')]`.
+
+---
 
 ## Installation
+
 1. Install and activate the plugin.
-2. Run database migrations to construct tables:
+2. Run database migrations:
    ```bash
-   php bin/console database:migrate TopdataElasticsearchHacksSW6 --all
+   php bin/console database:migrate TopdataBetterSearchSW6 --all
    ```
 3. Clear the Symfony cache:
    ```bash
    php bin/console cache:clear
-   ```
-4. Reset and rebuild the Elasticsearch search indices to apply the updated mappings:
-   ```bash
-   php bin/console es:reset
-   php bin/console es:index --no-queue
-   php bin/console es:create:alias
    ```
 
 ---
 
 ## Administration Module: Zero Search Results
 
-The plugin ships with an admin panel module to view and manage zero-result search terms directly in the Shopware administration.
+**Navigation:** Content → Better Search → Search Terms  
+**Route:** `topdata.better.search.list`  
+**Access:** Requires privilege `system.zero_search.viewer`
 
-* **Navigation:** Content → Zero Search Results
-* **Route:** `topdata.es.zero.search.list`
-* **Access:** Requires privilege `system.zero_search.viewer`
-
-The listing page shows all search terms that returned no products, displaying:
-* **Term** — the customer's search query
-* **Count** — how many times the term failed
-* **Last Searched / First Seen** — timestamps
-
-Entries can be sorted, paginated, and deleted directly from the admin grid.
+The listing page shows all search terms that returned no products, with columns for Term, Count, Last Searched, and First Seen. Entries can be sorted, paginated, and deleted.
 
 ---
 
-## Command Reference Guide: Synonym & Zero-Result Analytics
+## Command Reference
 
-This plugin contains a comprehensive suite of console commands to help merchants audit, optimize, and organize search synonyms.
+All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/foundation-sw6`.
 
-### 1. Identify Failed Searches (Zero-Result Terms)
-Extract terms entered by customers that returned no matches, formatted directly for an LLM prompt:
+### Index Management
+
 ```bash
-# Print standard console table view of failures
-php bin/console topdata:es-hacks:export-zero-results --limit=50 --min-count=2
-
-# Export directly into a pre-formatted LLM copy-paste prompt file
-php bin/console topdata:es-hacks:export-zero-results --format=llm-prompt --output=var/log/prompt.txt
+# Rebuild indices for all configured custom search backends
+php bin/console tdbs:index:rebuild --limit=100
 ```
 
-### 2. Validate Synonym Mapping Files
-Test a local synonyms text file for syntax, missing elements, or structural errors before committing changes to the database:
+### Synonym Management
+
 ```bash
-php bin/console topdata:es-hacks:validate-synonyms var/log/synonyms.txt
-```
+# Validate a synonym mapping file
+php bin/console tdbs:synonyms:validate synonyms.txt
 
-### 3. Dry-Run and Import Mappings
-Import generated synonyms text files using the explicit mapping format (`term => synonym1, synonym2`):
-```bash
-# Perform validation checks without writing to the database
-php bin/console topdata:es-hacks:import-synonyms var/log/synonyms.txt --dry-run
+# Dry-run import (validate without persisting)
+php bin/console tdbs:synonyms:import synonyms.txt --dry-run
 
-# Execute database import
-php bin/console topdata:es-hacks:import-synonyms var/log/synonyms.txt
-```
+# Import synonym mappings
+php bin/console tdbs:synonyms:import synonyms.txt
 
-### 4. Search and List Registered Mappings
-Inspect synonym entries currently configured in the database using filters and pagination:
-```bash
-# List all active mappings in a structured table
-php bin/console topdata:es-hacks:list-synonyms --limit=50
+# List all synonym mappings
+php bin/console tdbs:synonyms:list --limit=50
+php bin/console tdbs:synonyms:list --filter="papier"
 
-# Filter active mappings by search criteria
-php bin/console topdata:es-hacks:list-synonyms --filter="papier"
-```
+# Export to a file
+php bin/console tdbs:synonyms:export backup.txt
 
-### 5. Export Mappings (Backups/Manual Audits)
-Dump currently stored synonym mappings to a file for backup or local editing:
-```bash
-php bin/console topdata:es-hacks:export-synonyms --output=var/log/synonym_backup.txt
-```
+# Delete a specific synonym
+php bin/console tdbs:synonyms:delete "wc-papier"
 
-### 6. Delete a Specific Mapping
-Remove a unique synonym configuration using its left-hand key search term:
-```bash
-php bin/console topdata:es-hacks:delete-synonym "wc-papier"
-```
-
-### 7. Clear All Synonym Definitions
-Completely wipe all stored synonym records. Requires interactive confirmation unless forced:
-```bash
-php bin/console topdata:es-hacks:clear-synonyms
-# Or bypass the confirmation prompt:
-php bin/console topdata:es-hacks:clear-synonyms --force
+# Clear all synonyms (with interactive confirmation)
+php bin/console tdbs:synonyms:clear
+php bin/console tdbs:synonyms:clear --force
 ```
 
 ---
 
-## API Integration
+## Search Abstraction Layer
 
-Automated management scripts can retrieve zero-result queries via Shopware Admin API authentication:
-* **Route:** `GET /api/_action/topdata-elasticsearch-hacks-sw6/zero-results/export`
-* **Query Parameters:**
-  * `limit` (default: 100)
-  * `minCount` (default: 1)
-  * `format` (`json`, `csv`, `markdown`)
+The plugin introduces three core abstractions:
+
+| Interface / Class | Purpose |
+|---|---|
+| `SearchBackendInterface` | Defines `search()` and `index()` contract |
+| `SearchBackendRegistry` | Autowires all tagged backends via `#[TaggedIterator]` |
+| `DecoratedProductSearchRoute` / `DecoratedProductSuggestRoute` | Intercepts storefront routes with `#[AsDecorator]` |
+
+### Adding a Custom Backend
+
+Create a class implementing `SearchBackendInterface` and tag it:
+
+```php
+#[AutoconfigureTag('tdbs.search_backend')]
+class MyBackend implements SearchBackendInterface
+{
+    public function getName(): string { return 'my_backend'; }
+    public function search(Criteria $c, SalesChannelContext $ctx): ?array { /* ... */ }
+    public function index(array $products): void { /* ... */ }
+}
+```
+
+The registry picks it up automatically — no service configuration needed.
+
+---
 
 ## Requirements
 
 - Shopware 6.7.*
+- `topdata/foundation-sw6` ^1.0
 
 ## License
 
