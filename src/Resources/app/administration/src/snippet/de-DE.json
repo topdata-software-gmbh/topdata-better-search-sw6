@@ -1,7 +1,7 @@
 {
-    "topdata-es-zero-search": {
-        "title": "Null-Suchergebnisse",
-        "description": "Verwaltung von Suchbegriffen ohne Ergebnisse",
+    "TopdataBetterSearchSW6": {
+        "title": "Bessere Suche",
+        "description": "Suchbegriffe und Synonyme verwalten",
         "listTitle": "Suchbegriffe",
         "columnTerm": "Suchbegriff",
         "columnCount": "Anzahl",

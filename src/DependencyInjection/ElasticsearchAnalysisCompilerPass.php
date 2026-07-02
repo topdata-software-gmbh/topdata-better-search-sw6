@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Topdata\TopdataElasticsearchHacksSW6\DependencyInjection;
+namespace Topdata\TopdataBetterSearchSW6\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;

@@ -1,13 +1,12 @@
 const { Component, Mixin } = Shopware;
 const { Criteria } = Shopware.Data;
 
-Component.register('topdata-es-zero-search-list', {
+Component.register('topdata-better-search-list', {
     template: `
-
-<div class="topdata-es-zero-search-list">
-    <sw-page class="topdata-es-zero-search-list-page">
+<div class="topdata-better-search-list">
+    <sw-page class="topdata-better-search-list-page">
         <template #smart-bar-header>
-            <h2>{{ $tc('topdata-es-zero-search.title') }}</h2>
+            <h2>{{ $tc('TopdataBetterSearchSW6.title') }}</h2>
         </template>
 
         <template #content>
@@ -61,28 +60,28 @@ Component.register('topdata-es-zero-search-list', {
 
     computed: {
         repository() {
-            return this.repositoryFactory.create('topdata_es_zero_search');
+            return this.repositoryFactory.create('tdbs_zero_search');
         },
 
         columns() {
             return [{
                 property: 'term',
-                label: this.$tc('topdata-es-zero-search.columnTerm'),
+                label: this.$tc('TopdataBetterSearchSW6.columnTerm'),
                 allowResize: true,
                 primary: true,
             }, {
                 property: 'count',
-                label: this.$tc('topdata-es-zero-search.columnCount'),
+                label: this.$tc('TopdataBetterSearchSW6.columnCount'),
                 allowResize: true,
                 sortable: true,
             }, {
                 property: 'lastSearchedAt',
-                label: this.$tc('topdata-es-zero-search.columnLastSearchedAt'),
+                label: this.$tc('TopdataBetterSearchSW6.columnLastSearchedAt'),
                 allowResize: true,
                 sortable: true,
             }, {
                 property: 'createdAt',
-                label: this.$tc('topdata-es-zero-search.columnCreatedAt'),
+                label: this.$tc('TopdataBetterSearchSW6.columnCreatedAt'),
                 allowResize: true,
                 sortable: true,
             }];

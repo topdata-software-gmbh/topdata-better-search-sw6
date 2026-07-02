@@ -1,32 +1,35 @@
 <?php declare(strict_types=1);
 
-namespace Topdata\TopdataElasticsearchHacksSW6\Command;
+namespace Topdata\TopdataBetterSearchSW6\Command;
 
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService;
+use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Util\CliLogger;
+use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'topdata:es-hacks:clear-synonyms',
+    name: 'tdbs:synonyms:clear',
     description: 'Bulk purges all active synonym mappings from the database'
 )]
-class Command_ClearSynonyms extends Command
+class ClearSynonymsCommand extends TopdataFoundationSW6
 {
-    private SynonymService $synonymService;
-
-    public function __construct(SynonymService $synonymService)
+    public function __construct(private readonly SynonymService $synonymService)
     {
         parent::__construct();
-        $this->synonymService = $synonymService;
     }
 
     protected function configure(): void
     {
         $this->addOption('force', null, InputOption::VALUE_NONE, 'Skip the interactive confirmation safety check');
+    }
+
+    protected function initialize(InputInterface $input, OutputInterface $output): void
+    {
+        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -41,19 +44,19 @@ class Command_ClearSynonyms extends Command
             );
 
             if (!$helper->ask($input, $output, $question)) {
-                $output->writeln('<comment>Operation aborted.</comment>');
-                return Command::SUCCESS;
+                CliLogger::warning('Operation aborted.');
+                return self::SUCCESS;
             }
         }
 
         try {
             $this->synonymService->clearAllSynonyms();
-            $output->writeln('<info>Successfully cleared all synonym mapping definitions from the database.</info>');
+            CliLogger::success('Successfully cleared all synonym mapping definitions from the database.');
         } catch (\Throwable $e) {
-            $output->writeln('<error>Truncate process failed: ' . $e->getMessage() . '</error>');
-            return Command::FAILURE;
+            CliLogger::error('Truncate process failed: ' . $e->getMessage());
+            return self::FAILURE;
         }
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

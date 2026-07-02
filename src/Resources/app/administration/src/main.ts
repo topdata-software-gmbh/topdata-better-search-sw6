@@ -1,1 +1,1 @@
-import './module/topdata-es-zero-search';
+import './module/topdata-better-search';

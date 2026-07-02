@@ -1,18 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace Topdata\TopdataElasticsearchHacksSW6\Service;
+namespace Topdata\TopdataBetterSearchSW6\Service;
 
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\Uuid\Uuid;
 
 class SynonymService
 {
-    private Connection $connection;
-
-    public function __construct(Connection $connection)
-    {
-        $this->connection = $connection;
-    }
+    public function __construct(private readonly Connection $connection) {}
 
     /**
      * @return array<array{term: string, synonyms: string, created_at: string}>
@@ -21,7 +16,7 @@ class SynonymService
     {
         $qb = $this->connection->createQueryBuilder();
         $qb->select('term', 'synonyms', 'created_at')
-            ->from('topdata_es_synonym')
+            ->from('tdbs_synonym')
             ->orderBy('term', 'ASC')
             ->setMaxResults($limit)
             ->setFirstResult($offset);
@@ -37,7 +32,7 @@ class SynonymService
     public function deleteSynonym(string $term): bool
     {
         $deleted = $this->connection->executeStatement(
-            'DELETE FROM `topdata_es_synonym` WHERE `term` = :term',
+            'DELETE FROM `tdbs_synonym` WHERE `term` = :term',
             ['term' => mb_strtolower(trim($term))]
         );
 
@@ -46,7 +41,7 @@ class SynonymService
 
     public function clearAllSynonyms(): int
     {
-        return (int) $this->connection->executeStatement('TRUNCATE TABLE `topdata_es_synonym`');
+        return (int) $this->connection->executeStatement('TRUNCATE TABLE `tdbs_synonym`');
     }
 
     public function validateFile(string $filePath): array
@@ -160,7 +155,7 @@ class SynonymService
                 $synonyms = mb_strtolower(trim($parts[1]));
 
                 $this->connection->executeStatement(
-                    'INSERT INTO `topdata_es_synonym` (`id`, `term`, `synonyms`, `created_at`)
+                    'INSERT INTO `tdbs_synonym` (`id`, `term`, `synonyms`, `created_at`)
                      VALUES (:id, :term, :synonyms, :now)
                      ON DUPLICATE KEY UPDATE `synonyms` = :synonyms, `created_at` = :now',
                     [
@@ -186,7 +181,7 @@ class SynonymService
     {
         $qb = $this->connection->createQueryBuilder();
         $qb->select('term', 'synonyms')
-            ->from('topdata_es_synonym')
+            ->from('tdbs_synonym')
             ->orderBy('term', 'ASC');
 
         $rows = $qb->executeQuery()->fetchAllAssociative();

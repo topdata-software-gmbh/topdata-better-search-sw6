@@ -1,7 +1,7 @@
 {
-    "topdata-es-zero-search": {
-        "title": "Zero Search Results",
-        "description": "Manage zero-result search terms",
+    "TopdataBetterSearchSW6": {
+        "title": "Better Search",
+        "description": "Manage search terms and synonyms",
         "listTitle": "Search Terms",
         "columnTerm": "Search Term",
         "columnCount": "Count",

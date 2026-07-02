@@ -3,7 +3,8 @@ filename: "_ai/backlog/active/260702_1420__IMPLEMENTATION_PLAN__rebrand_and_abst
 title: "Transition to Generic 'Better Search' Plugin with Service Abstraction"
 createdAt: 2026-07-02 14:20
 updatedAt: 2026-07-02 14:20
-status: draft
+status: completed
+completedAt: 2026-07-02 18:41
 priority: high
 tags: [refactoring, migration, search-backend, abstraction, storefront-routes, shopware6.7]
 estimatedComplexity: complex
@@ -67,7 +68,7 @@ Add dependency requirements and update autoloader namespaces.
 {
     "name":        "topdata/better-search-sw6",
     "description": "Topdata Better Search SW6",
-    "version":     "v2.0.0",
+    "version":     "v1.0.0",
     "type":        "shopware-platform-plugin",
     "license":     "MIT",
     "authors":     [
@@ -1400,6 +1401,7 @@ updatedAt: 2026-07-02 14:20
 planFile: "_ai/backlog/active/260702_1420__IMPLEMENTATION_PLAN__rebrand_and_abstract_to_better_search.md"
 project: "SW6.7 Plugin"
 status: completed
+completedAt: 2026-07-02 18:41
 filesCreated: 19
 filesModified: 4
 filesDeleted: 19

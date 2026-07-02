@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace Topdata\TopdataElasticsearchHacksSW6;
+namespace Topdata\TopdataBetterSearchSW6;
 
 use Shopware\Core\Framework\Plugin;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Topdata\TopdataElasticsearchHacksSW6\DependencyInjection\ElasticsearchAnalysisCompilerPass;
+use Topdata\TopdataBetterSearchSW6\DependencyInjection\ElasticsearchAnalysisCompilerPass;
 
-class TopdataElasticsearchHacksSW6 extends Plugin
+class TopdataBetterSearchSW6 extends Plugin
 {
     public function build(ContainerBuilder $container): void
     {

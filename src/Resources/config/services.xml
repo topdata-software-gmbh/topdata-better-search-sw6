@@ -4,73 +4,14 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
+        <defaults autowire="true" autoconfigure="true" public="false" />
+
+        <!-- Autodiscovery -->
+        <prototype namespace="Topdata\TopdataBetterSearchSW6\" resource="../../*" exclude="../../{DependencyInjection,Entity,Migration,Resources,TopdataBetterSearchSW6.php}" />
+
         <!-- Entity Definition -->
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Entity\ZeroSearch\ZeroSearchEntityDefinition">
+        <service id="Topdata\TopdataBetterSearchSW6\Entity\ZeroSearch\ZeroSearchDefinition">
             <tag name="shopware.entity.definition"/>
-        </service>
-
-        <!-- Core Business Logic Services -->
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService" public="true">
-            <argument type="service" id="Doctrine\DBAL\Connection"/>
-        </service>
-
-        <!-- Storefront Search Fail Aggregation Subscriber -->
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Subscriber\ProductSearchSubscriber">
-            <argument type="service" id="Doctrine\DBAL\Connection"/>
-            <tag name="kernel.event_subscriber"/>
-        </service>
-
-        <!-- Dynamic Storefront Search Exclusion Subscriber -->
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Subscriber\SearchCriteriaSubscriber">
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
-            <tag name="kernel.event_subscriber"/>
-        </service>
-
-        <!-- Command Line Control Suite Services -->
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Command\Command_ImportSynonyms">
-            <argument type="service" id="Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService"/>
-            <tag name="console.command"/>
-        </service>
-
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Command\Command_ListSynonyms">
-            <argument type="service" id="Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService"/>
-            <tag name="console.command"/>
-        </service>
-
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Command\Command_DeleteSynonym">
-            <argument type="service" id="Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService"/>
-            <tag name="console.command"/>
-        </service>
-
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Command\Command_ClearSynonyms">
-            <argument type="service" id="Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService"/>
-            <tag name="console.command"/>
-        </service>
-
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Command\Command_ExportSynonyms">
-            <argument type="service" id="Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService"/>
-            <tag name="console.command"/>
-        </service>
-
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Command\Command_ValidateSynonyms">
-            <argument type="service" id="Topdata\TopdataElasticsearchHacksSW6\Service\SynonymService"/>
-            <tag name="console.command"/>
-        </service>
-
-        <!-- Action API Route Controllers -->
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Controller\StorefrontExampleController" public="true">
-            <call method="setContainer">
-                <argument type="service" id="service_container"/>
-            </call>
-            <call method="setTwig">
-                <argument type="service" id="twig"/>
-            </call>
-        </service>
-
-        <service id="Topdata\TopdataElasticsearchHacksSW6\Controller\AdminApiExampleController" public="true">
-            <call method="setContainer">
-                <argument type="service" id="service_container"/>
-            </call>
         </service>
     </services>
 </container>

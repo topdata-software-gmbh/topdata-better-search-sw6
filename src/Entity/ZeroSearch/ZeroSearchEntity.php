@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Topdata\TopdataElasticsearchHacksSW6\Entity\ZeroSearch;
+namespace Topdata\TopdataBetterSearchSW6\Entity\ZeroSearch;
 
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;

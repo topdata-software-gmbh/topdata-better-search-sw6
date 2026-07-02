@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Topdata\TopdataElasticsearchHacksSW6\Entity\ZeroSearch;
+namespace Topdata\TopdataBetterSearchSW6\Entity\ZeroSearch;
 
 use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\DateTimeField;
@@ -10,14 +10,14 @@ use Shopware\Core\Framework\DataAbstractionLayer\Field\IdField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\IntField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\StringField;
 use Shopware\Core\Framework\DataAbstractionLayer\FieldCollection;
+use Shopware\Core\Framework\DataAbstractionLayer\Attribute\Entity;
 
-class ZeroSearchEntityDefinition extends EntityDefinition
+#[Entity('tdbs_zero_search')]
+class ZeroSearchDefinition extends EntityDefinition
 {
-    public const ENTITY_NAME = 'topdata_es_zero_search';
-
     public function getEntityName(): string
     {
-        return self::ENTITY_NAME;
+        return 'tdbs_zero_search';
     }
 
     public function getEntityClass(): string
