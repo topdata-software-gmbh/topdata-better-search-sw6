@@ -6,27 +6,32 @@
 
 ## Overview
 
-Topdata Better Search is a highly configurable, multi-backend search engine for Shopware 6.7. It decouples storefront search from any single provider, enabling you to leverage **Elasticsearch**, **Meilisearch**, **Qdrant**, or the **Shopware Core** engine interchangeably — or in parallel.
+Topdata Better Search is a highly configurable search engine integration for Shopware 6.7. It decouples storefront search from any single provider, enabling you to leverage **Elasticsearch**, **Meilisearch**, **Qdrant**, or the **Shopware Core** engine.
 
-Built on a clean service abstraction layer, the plugin decorates the native `ProductSearchRoute` and `ProductSuggestRoute`, intercepting queries before they reach the database and routing them through your configured search backends.
+The plugin routes search requests through a prioritized fallback chain. Only one backend ultimately handles and returns the results for a given query; **results from multiple backends are never merged or combined**, preserving pagination and ranking integrity.
+
+Built on a clean service abstraction layer, the plugin decorates the native `ProductSearchRoute` and `ProductSuggestRoute` to intercept queries and execute them against the active backend chain.
 
 ## Features
 
 * **🔌 Pluggable Search Backends** — Swap search engines via a clean `SearchBackendInterface`. Ships with stubs for Shopware Core, Meilisearch, and Qdrant.
+* **⛓️ Prioritized Fallback Routing** — Evaluates active search backends in sequence. The first backend that returns a non-null result set handles the query, with others acting as fallbacks.
 * **⚡ Elasticsearch Analyzer Optimization** — Globally registers a `word_delimiter_graph` token filter for better matching on hyphenated/concatenated terms (e.g., `WC-Papier` matching `WC Papier`).
 * **📖 Synonym Management Suite** — Full CLI toolset to validate, import, export, list, delete, and clear synonym mappings.
-* **🔍 Zero-Result Tracking** — Automatically logs storefront searches that return no results for analysis and optimization.
-* **🚫 Category Search Exclusion** — Select categories in plugin configuration to dynamically hide assigned products from search and suggestion results.
-* **🧩 Symfony 7.4 Native Attributes** — Uses `#[AsDecorator]`, `#[TaggedIterator]`, `#[AutoconfigureTag]`, and `#[AsCommand]` throughout — no boilerplate XML.
+* **🔍 Zero-Result Tracking** — Automatically logs storefront searches that return no results to a dedicated database table for analysis.
+* **🚫 Category Search Exclusion** — Select categories in the plugin configuration to dynamically hide assigned products from search and suggestion results.
+* **🧩 Symfony 7.4 Native Attributes** — Uses `#[AsDecorator]`, `#[TaggedIterator]`, `#[AutoconfigureTag]`, and `#[AsCommand]` throughout for service declaration.
 * **🎨 Administration Module** — View and manage zero-result search terms directly in the Shopware admin panel.
 
-## Future Vision
+## Fallback Execution Flow
 
-This plugin is designed to grow into a unified search hub:
+The plugin evaluates backends sequentially using a chain-of-responsibility pattern:
 
-- **Multi-Backend Fallback** — Query backends in priority order; if one returns no results, fall through to the next.
-- **Console-First Indexing** — `tdbs:index:rebuild` pushes product data to all configured custom backends.
-- **Extensible** — Add new backends by implementing `SearchBackendInterface` and tagging with `#[AutoconfigureTag('tdbs.search_backend')]`.
+1. The registry iterates through active backends based on compiler pass priority.
+2. Each backend's `search()` method is called:
+   * If a backend returns `null`, the query falls through to the next engine in the chain.
+   * If a backend returns an array of matching product IDs (including an empty array `[]`), execution stops, and those IDs are used to filter the Shopware product collection.
+3. If no custom backend handles the query, the native Shopware search mechanism is used.
 
 ---
 
@@ -118,7 +123,7 @@ class MyBackend implements SearchBackendInterface
 }
 ```
 
-The registry picks it up automatically — no service configuration needed.
+The registry picks it up automatically — no service XML configuration needed.
 
 ---
 
