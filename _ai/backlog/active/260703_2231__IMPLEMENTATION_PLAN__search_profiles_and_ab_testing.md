@@ -42,7 +42,9 @@ The core changes introduce:
 
 ### Phase 1: Database Schema Expansion for Search Analytics Log
 
-We will add a new database migration class to create the `tdbs_search_log` table. This tracking table logs the active profile, count of matching hits, and execution times, facilitating data-driven decisions during A/B testing.
+We will add a new database migration class to create the `tdbs_search_log` table. This tracking table logs the active profile, sales channel, count of matching hits, and execution times, facilitating data-driven decisions during A/B testing.
+
+> **Note on backward compatibility:** The existing `tdbs_zero_search` table (and its admin panel module) remains intact. The new `tdbs_search_log` supplements it with per-query profiling data. The existing `logZeroSearchResult` method in `DecoratedProductSearchRoute` is retained for backward compatibility (see Phase 4).
 
 #### [NEW FILE] `src/Migration/Migration1800000001CreateSearchLogTable.php`
 ```php
@@ -67,12 +69,14 @@ class Migration1800000001CreateSearchLogTable extends MigrationStep
                 `id` BINARY(16) NOT NULL,
                 `term` VARCHAR(255) NOT NULL,
                 `profile` VARCHAR(100) NOT NULL,
+                `sales_channel_id` BINARY(16) NULL,
                 `hits_count` INT NOT NULL,
                 `execution_time_ms` INT NOT NULL,
                 `created_at` DATETIME(3) NOT NULL,
                 PRIMARY KEY (`id`),
                 INDEX `idx.tdbs_search_log.term` (`term`),
-                INDEX `idx.tdbs_search_log.profile` (`profile`)
+                INDEX `idx.tdbs_search_log.profile` (`profile`),
+                INDEX `idx.tdbs_search_log.sales_channel_id` (`sales_channel_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ');
     }
@@ -87,7 +91,7 @@ class Migration1800000001CreateSearchLogTable extends MigrationStep
 
 ### Phase 2: Modular Profile Configuration & Registry
 
-We will implement the central `ProfileRegistry` to dynamically load the global `config.yaml` file and parse individual profiles.
+We will implement the central `ProfileRegistry` to dynamically load the global `config.yaml` file and parse individual profiles. YAML parsing is wrapped in try/catch to prevent container build crashes from invalid syntax. Validation methods report profile structure errors.
 
 #### [NEW FILE] `src/Service/ProfileRegistry.php`
 ```php
@@ -95,6 +99,7 @@ We will implement the central `ProfileRegistry` to dynamically load the global `
 
 namespace Topdata\TopdataBetterSearchSW6\Service;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
 
@@ -103,9 +108,13 @@ class ProfileRegistry
     /** @var array<string, array<string, mixed>> */
     private array $profiles = [];
     private array $globalConfig = [];
+    /** @var string[] */
+    private array $validationErrors = [];
 
-    public function __construct(private readonly string $projectDir)
-    {
+    public function __construct(
+        private readonly string $projectDir,
+        private readonly ?LoggerInterface $logger = null
+    ) {
         $this->loadConfiguration();
     }
 
@@ -116,8 +125,13 @@ class ProfileRegistry
         // 1. Load Global Settings
         $globalFile = $configPath . '/config.yaml';
         if (file_exists($globalFile)) {
-            $parsed = Yaml::parseFile($globalFile);
-            $this->globalConfig = \is_array($parsed) ? $parsed : [];
+            try {
+                $parsed = Yaml::parseFile($globalFile);
+                $this->globalConfig = \is_array($parsed) ? $parsed : [];
+            } catch (\Throwable $e) {
+                $this->validationErrors[] = sprintf('Failed to parse %s: %s', $globalFile, $e->getMessage());
+                $this->logger?->error('TDBS: Failed to parse global config', ['file' => $globalFile, 'error' => $e->getMessage()]);
+            }
         }
 
         // 2. Load Modular Profile Definitions
@@ -128,12 +142,74 @@ class ProfileRegistry
 
             foreach ($finder as $file) {
                 $profileId = $file->getBasename('.' . $file->getExtension());
-                $profileData = Yaml::parseFile($file->getRealPath());
-                if (\is_array($profileData)) {
-                    $this->profiles[$profileId] = $profileData;
+                try {
+                    $profileData = Yaml::parseFile($file->getRealPath());
+                    if (\is_array($profileData)) {
+                        $validationError = $this->validateProfile($profileId, $profileData);
+                        if ($validationError !== null) {
+                            $this->validationErrors[] = $validationError;
+                            $this->logger?->warning('TDBS: Invalid profile skipped', ['profile' => $profileId, 'error' => $validationError]);
+                            continue;
+                        }
+                        $this->profiles[$profileId] = $profileData;
+                    }
+                } catch (\Throwable $e) {
+                    $this->validationErrors[] = sprintf('Failed to parse profile "%s": %s', $profileId, $e->getMessage());
+                    $this->logger?->error('TDBS: Failed to parse profile', ['profile' => $profileId, 'error' => $e->getMessage()]);
                 }
             }
         }
+
+        // 3. Validate A/B distribution references existing profiles
+        $this->validateAbDistribution();
+    }
+
+    /**
+     * Validates that a profile YAML file has the required structure.
+     * Returns an error string or null on success.
+     */
+    private function validateProfile(string $profileId, array $data): ?string
+    {
+        if (!isset($data['pipeline']) || !\is_array($data['pipeline'])) {
+            return sprintf('Profile "%s" is missing a "pipeline" key or it is not an array.', $profileId);
+        }
+
+        foreach ($data['pipeline'] as $index => $step) {
+            if (!isset($step['backend']) || !\is_string($step['backend'])) {
+                return sprintf('Profile "%s" pipeline step %d is missing a "backend" key.', $profileId, $index);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Validates that A/B distribution profile IDs reference existing profiles.
+     */
+    private function validateAbDistribution(): void
+    {
+        $distribution = $this->globalConfig['ab_testing']['distribution'] ?? [];
+        foreach ($distribution as $profileId => $weight) {
+            if (!isset($this->profiles[$profileId])) {
+                $this->validationErrors[] = sprintf(
+                    'A/B distribution references non-existent profile "%s".',
+                    $profileId
+                );
+            }
+        }
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getValidationErrors(): array
+    {
+        return $this->validationErrors;
+    }
+
+    public function hasValidationErrors(): bool
+    {
+        return !empty($this->validationErrors);
     }
 
     public function getProfile(string $id): ?array
@@ -246,6 +322,13 @@ class ProfileResolver
 We will adapt `DecoratedProductSearchRoute` and `DecoratedProductSuggestRoute` to fetch the resolved profile's specific pipeline, run matches through the configured engines, and inject search options using Shopware's `Criteria` extension model.
 
 #### [MODIFY] `src/Route/DecoratedProductSearchRoute.php`
+
+This file is significantly refactored to support profile-based search pipelines. The existing `logZeroSearchResult` method is **retained** for backward compatibility with the `tdbs_zero_search` table and its admin panel module. A new `logSearchResult` method supplements it with per-query profiling data.
+
+**Key design decisions:**
+- The winning backend's `tdbs_options` are saved separately and re-injected **after** the pipeline loop, so `$this->decorated->load()` receives the correct backend's options (not the last step's options).
+- Both zero-result tracking (`tdbs_zero_search`) and per-query profiling (`tdbs_search_log`) coexist. The admin panel module continues to work against `tdbs_zero_search`.
+
 ```php
 <?php declare(strict_types=1);
 
@@ -291,6 +374,7 @@ class DecoratedProductSearchRoute extends AbstractProductSearchRoute
 
         $term = $criteria->getTerm() ?? '';
         $ids = null;
+        $resolvedOptions = null;
 
         // Resolve search profile
         $profileId = $this->profileResolver->resolveActiveProfile($request);
@@ -307,17 +391,27 @@ class DecoratedProductSearchRoute extends AbstractProductSearchRoute
                     continue;
                 }
 
-                // Inject backend options via clean Criteria extension
                 $options = $step['options'] ?? [];
                 $criteria->addExtension('tdbs_options', new ArrayStruct($options));
 
                 $resultIds = $backend->search($criteria, $context);
                 if ($resultIds !== null) {
                     $ids = $resultIds;
+                    $resolvedOptions = $options;
                     break;
                 }
             }
+
+            // Re-inject the winning backend's options so $this->decorated->load()
+            // sees the correct options, not the last pipeline step's options.
+            if ($resolvedOptions !== null) {
+                $criteria->addExtension('tdbs_options', new ArrayStruct($resolvedOptions));
+            } else {
+                $criteria->removeExtension('tdbs_options');
+            }
         } else {
+            $criteria->removeExtension('tdbs_options');
+
             // Fallback to active backend list loop
             foreach ($this->backendRegistry->getActiveBackends() as $backend) {
                 $resultIds = $backend->search($criteria, $context);
@@ -342,7 +436,13 @@ class DecoratedProductSearchRoute extends AbstractProductSearchRoute
         $executionTime = (int) (microtime(true) * 1000) - $startTime;
 
         if (!empty($term)) {
-            $this->logSearchResult($term, $profileId, $totalHits, $executionTime);
+            // New: per-query profiling
+            $this->logSearchResult($term, $profileId, $context->getSalesChannelId(), $totalHits, $executionTime);
+
+            // Backward compat: zero-result tracking (retained for admin panel module)
+            if ($totalHits === 0) {
+                $this->logZeroSearchResult($term);
+            }
         }
 
         return $response;
@@ -365,7 +465,7 @@ class DecoratedProductSearchRoute extends AbstractProductSearchRoute
         }
     }
 
-    private function logSearchResult(string $term, string $profileId, int $hitsCount, int $executionTimeMs): void
+    private function logSearchResult(string $term, string $profileId, string $salesChannelId, int $hitsCount, int $executionTimeMs): void
     {
         $term = mb_strtolower(trim($term));
         if (mb_strlen($term) > 255) {
@@ -374,14 +474,37 @@ class DecoratedProductSearchRoute extends AbstractProductSearchRoute
 
         try {
             $this->connection->executeStatement(
-                'INSERT INTO `tdbs_search_log` (`id`, `term`, `profile`, `hits_count`, `execution_time_ms`, `created_at`)
-                 VALUES (:id, :term, :profile, :hits, :execution_time, :now)',
+                'INSERT INTO `tdbs_search_log` (`id`, `term`, `profile`, `sales_channel_id`, `hits_count`, `execution_time_ms`, `created_at`)
+                 VALUES (:id, :term, :profile, :salesChannelId, :hits, :execution_time, :now)',
                 [
                     'id' => Uuid::randomBytes(),
                     'term' => $term,
                     'profile' => $profileId,
+                    'salesChannelId' => Uuid::fromHexToBytes($salesChannelId),
                     'hits' => $hitsCount,
                     'execution_time' => $executionTimeMs,
+                    'now' => (new \DateTime())->format('Y-m-d H:i:s.v')
+                ]
+            );
+        } catch (\Throwable $e) {
+        }
+    }
+
+    private function logZeroSearchResult(string $term): void
+    {
+        $term = mb_strtolower(trim($term));
+        if (mb_strlen($term) > 255) {
+            $term = mb_substr($term, 0, 255);
+        }
+
+        try {
+            $this->connection->executeStatement(
+                'INSERT INTO `tdbs_zero_search` (`id`, `term`, `count`, `created_at`, `last_searched_at`)
+                 VALUES (:id, :term, 1, :now, :now)
+                 ON DUPLICATE KEY UPDATE `count` = `count` + 1, `last_searched_at` = :now',
+                [
+                    'id' => Uuid::randomBytes(),
+                    'term' => $term,
                     'now' => (new \DateTime())->format('Y-m-d H:i:s.v')
                 ]
             );
@@ -392,6 +515,9 @@ class DecoratedProductSearchRoute extends AbstractProductSearchRoute
 ```
 
 #### [MODIFY] `src/Route/DecoratedProductSuggestRoute.php`
+
+Refactored to support profile-based suggest pipelines, matching the search route pattern.
+
 ```php
 <?php declare(strict_types=1);
 
@@ -432,6 +558,7 @@ class DecoratedProductSuggestRoute extends AbstractProductSuggestRoute
         $this->applyCategoryExclusions($criteria, $context);
 
         $ids = null;
+        $resolvedOptions = null;
         $profileId = $this->profileResolver->resolveActiveProfile($request);
         $profile = $this->profileRegistry->getProfile($profileId);
 
@@ -452,10 +579,19 @@ class DecoratedProductSuggestRoute extends AbstractProductSuggestRoute
                 $resultIds = $backend->search($criteria, $context);
                 if ($resultIds !== null) {
                     $ids = $resultIds;
+                    $resolvedOptions = $options;
                     break;
                 }
             }
+
+            if ($resolvedOptions !== null) {
+                $criteria->addExtension('tdbs_options', new ArrayStruct($resolvedOptions));
+            } else {
+                $criteria->removeExtension('tdbs_options');
+            }
         } else {
+            $criteria->removeExtension('tdbs_options');
+
             foreach ($this->backendRegistry->getActiveBackends() as $backend) {
                 $resultIds = $backend->search($criteria, $context);
                 if ($resultIds !== null) {
@@ -499,7 +635,9 @@ class DecoratedProductSuggestRoute extends AbstractProductSuggestRoute
 
 ### Phase 5: Cache Variation Cookie Integration
 
-To support user segregation during cached storefront requests, the `CacheVariationSubscriber` adds `Vary: Cookie` to requests featuring assigned profile attributes and injects the `tdbs_profile` cookie.
+To support user segregation during cached storefront requests, the `CacheVariationSubscriber` injects the `tdbs_profile` cookie and adds `Vary: Cookie` headers **only when A/B testing is enabled** in the global configuration. This preserves the HTTP cache for normal (non-A/B) operation.
+
+> **Listener priority:** Use `KernelEvents::RESPONSE` with priority `-10` so the subscriber runs after Shopware's internal cache layer has already processed the response but before it is sent to the client.
 
 #### [NEW FILE] `src/Subscriber/CacheVariationSubscriber.php`
 ```php
@@ -511,13 +649,18 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpFoundation\Cookie;
+use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 
 class CacheVariationSubscriber implements EventSubscriberInterface
 {
+    public function __construct(private readonly ProfileRegistry $profileRegistry)
+    {
+    }
+
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::RESPONSE => 'onResponse',
+            KernelEvents::RESPONSE => ['onResponse', -10],
         ];
     }
 
@@ -526,14 +669,24 @@ class CacheVariationSubscriber implements EventSubscriberInterface
         $request = $event->getRequest();
         $response = $event->getResponse();
 
-        if ($request->attributes->has('tdbs_assigned_profile')) {
-            $profileId = (string) $request->attributes->get('tdbs_assigned_profile');
-            
-            // Set variation cookie for 30 days
-            $cookie = Cookie::create('tdbs_profile', $profileId, new \DateTime('+30 days'));
-            $response->headers->setCookie($cookie);
+        if (!$request->attributes->has('tdbs_assigned_profile')) {
+            return;
+        }
 
-            // Instruct reverse proxies and Shopware HTTP cache to vary on cookies
+        $globalConfig = $this->profileRegistry->getGlobalConfig();
+        $abEnabled = $globalConfig['ab_testing']['enabled'] ?? false;
+
+        $profileId = (string) $request->attributes->get('tdbs_assigned_profile');
+
+        // Always set the variation cookie (harmless when A/B is off —
+        // it preserves the user's profile across sessions for future tests)
+        $cookie = Cookie::create('tdbs_profile', $profileId, new \DateTime('+30 days'))
+            ->withSameSite(Cookie::SAMESITE_LAX);
+        $response->headers->setCookie($cookie);
+
+        // Only instruct reverse proxies to vary on Cookie when A/B testing
+        // is active, to avoid needlessly disabling the HTTP cache.
+        if ($abEnabled) {
             $response->setVary('Cookie', false);
         }
     }
@@ -555,6 +708,7 @@ namespace Topdata\TopdataBetterSearchSW6\Command;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
@@ -565,8 +719,10 @@ use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 )]
 class StatusConfigCommand extends TopdataFoundationSW6
 {
-    public function __construct(private readonly ProfileRegistry $profileRegistry)
-    {
+    public function __construct(
+        private readonly ProfileRegistry $profileRegistry,
+        private readonly HttpClientInterface $httpClient
+    ) {
         parent::__construct();
     }
 
@@ -585,6 +741,15 @@ class StatusConfigCommand extends TopdataFoundationSW6
             return self::FAILURE;
         }
 
+        // Report YAML validation errors
+        $validationErrors = $this->profileRegistry->getValidationErrors();
+        if (!empty($validationErrors)) {
+            CliLogger::section('Validation Errors');
+            foreach ($validationErrors as $error) {
+                CliLogger::error($error);
+            }
+        }
+
         CliLogger::section('Connections Health Check');
         $this->checkConnections($globalConfig);
 
@@ -595,7 +760,7 @@ class StatusConfigCommand extends TopdataFoundationSW6
         } else {
             foreach ($profiles as $id => $profile) {
                 CliLogger::writeln(sprintf(
-                    ' • <info>%s</info> - %s (Pipeline: %d step(s))',
+                    ' - <info>%s</info> - %s (Pipeline: %d step(s))',
                     $id,
                     $profile['name'] ?? 'Unnamed',
                     isset($profile['pipeline']) ? count($profile['pipeline']) : 0
@@ -653,15 +818,15 @@ class StatusConfigCommand extends TopdataFoundationSW6
 
     private function pingUrl(string $url): bool
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
-        curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        return $code >= 200 && $code < 400;
+        try {
+            $response = $this->httpClient->request('GET', $url, [
+                'timeout' => 3,
+            ]);
+            $code = $response->getStatusCode();
+            return $code >= 200 && $code < 400;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 }
 ```
@@ -677,10 +842,13 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Shopware\Core\System\SalesChannel\Context\AbstractSalesChannelContextFactory;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\Struct\ArrayStruct;
 use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\Content\Product\ProductEntity;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\Context;
 use Doctrine\DBAL\Connection;
 use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
@@ -696,8 +864,8 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
     public function __construct(
         private readonly ProfileRegistry $profileRegistry,
         private readonly SearchBackendRegistry $backendRegistry,
-        private readonly AbstractSalesChannelContextFactory $contextFactory,
-        private readonly Connection $connection
+        private readonly Connection $connection,
+        private readonly EntityRepository $productRepository
     ) {
         parent::__construct();
     }
@@ -706,6 +874,7 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
     {
         $this->addArgument('term', InputArgument::REQUIRED, 'The search term to query');
         $this->addOption('profile', 'p', InputOption::VALUE_REQUIRED, 'Target search profile ID (from profiles/)');
+        $this->addOption('resolve-products', null, InputOption::VALUE_NONE, 'Resolve and display product names for returned IDs');
     }
 
     protected function initialize(InputInterface $input, OutputInterface $output): void
@@ -717,6 +886,7 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
     {
         $term = $input->getArgument('term');
         $profileId = $input->getOption('profile');
+        $resolveProducts = (bool) $input->getOption('resolve-products');
 
         if (!$profileId) {
             $profiles = $this->profileRegistry->getActiveProfiles();
@@ -731,8 +901,8 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
 
         CliLogger::title(sprintf('Executing Search: "%s" via profile "%s"', $term, $profileId));
 
-        $context = $this->getSalesChannelContext();
-        if ($context === null) {
+        $salesChannelContext = $this->getSalesChannelContext();
+        if ($salesChannelContext === null) {
             CliLogger::error('No active sales channel found to run search context.');
             return self::FAILURE;
         }
@@ -742,6 +912,7 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
 
         $ids = null;
         $resolvedBackend = null;
+        $resolvedOptions = null;
 
         $startTime = microtime(true);
         foreach ($pipeline as $step) {
@@ -762,11 +933,12 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
             $criteria->addExtension('tdbs_options', new ArrayStruct($options));
 
             CliLogger::info(sprintf('Evaluating Backend pipeline step: "%s"...', $backendName));
-            $resultIds = $backend->search($criteria, $context);
+            $resultIds = $backend->search($criteria, $salesChannelContext);
 
             if ($resultIds !== null) {
                 $ids = $resultIds;
                 $resolvedBackend = $backendName;
+                $resolvedOptions = $options;
                 break;
             }
         }
@@ -778,19 +950,51 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
             CliLogger::warning('Pipeline resolved successfully but returned 0 matches.');
         } else {
             CliLogger::success(sprintf(
-                'Success! Pipeline resolved in <info>%s</info> via <info>%d matches</info> on <info>%s</info>',
+                'Success! Resolved by backend <info>%s</info> — <info>%d matches</info> in <info>%d ms</info>',
                 $resolvedBackend,
                 count($ids),
-                $duration . 'ms'
+                $duration
             ));
 
-            CliLogger::section('Result IDs (Truncated to first 10)');
+            CliLogger::section('Result IDs (first 10)');
             foreach (array_slice($ids, 0, 10) as $index => $id) {
                 CliLogger::writeln(sprintf(' [%d] %s', $index + 1, $id));
+            }
+
+            if ($resolveProducts) {
+                $this->resolveProductDetails($ids, $salesChannelContext->getContext());
             }
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Resolves product names for the returned IDs using the DAL.
+     */
+    private function resolveProductDetails(array $ids, Context $context): void
+    {
+        $criteria = new Criteria($ids);
+        $criteria->addFields(['id', 'name', 'productNumber']);
+        $criteria->setLimit(10);
+
+        $result = $this->productRepository->search($criteria, $context);
+
+        if ($result->count() === 0) {
+            CliLogger::warning('No product details could be resolved for the returned IDs.');
+            return;
+        }
+
+        CliLogger::section('Product Details (resolved, first 10)');
+        /** @var ProductEntity $product */
+        foreach ($result->getEntities() as $product) {
+            CliLogger::writeln(sprintf(
+                '  <info>%s</info> — %s (%s)',
+                $product->getProductNumber(),
+                $product->getName(),
+                $product->getId()
+            ));
+        }
     }
 
     private function getSalesChannelContext(): ?\Shopware\Core\System\SalesChannel\SalesChannelContext
@@ -800,9 +1004,12 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
             if (!$salesChannel) {
                 return null;
             }
-            
+
             $salesChannelId = Uuid::fromBytesToHex($salesChannel['id']);
-            return $this->contextFactory->create(Uuid::randomHex(), $salesChannelId);
+
+            /** @var \Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory $contextFactory */
+            $contextFactory = $this->container->get('Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory');
+            return $contextFactory->create(Uuid::randomHex(), $salesChannelId);
         } catch (\Throwable $e) {
             return null;
         }
@@ -835,7 +1042,7 @@ The plugin routes search requests through a prioritized, multi-profile fallback 
 * **🔌 Pluggable Search Profiles** — Configure distinct search pipelines and A/B test splits in yaml format.
 * **⛓️ Prioritized Fallback Routing** — Evaluates active search backends in sequence per profile. The first backend that returns a non-null result set handles the query.
 * **📈 A/B Testing Suite** — Distribute customer queries across profiles and log query parameters, hits, and processing speeds.
-* **❄️ Cache variation handling** — Employs cookie variations (`Vary: Cookie`) during active A/B tests to prevent proxy cash collision.
+* **❄️ Cache variation handling** — Employs cookie variations (`Vary: Cookie`) during active A/B tests to prevent reverse proxy cache collisions.
 * **⚡ Elasticsearch Analyzer Optimization** — Globally registers a `word_delimiter_graph` token filter for better matching on hyphenated/concatenated terms (e.g., `WC-Papier` matching `WC Papier`).
 * **📖 Synonym Management Suite** — Full CLI toolset to validate, import, export, list, delete, and clear synonym mappings.
 * **🎨 Administration Module** — View and manage zero-result search terms directly in the Shopware admin panel.
@@ -992,44 +1199,51 @@ documentType: IMPLEMENTATION_REPORT
 ---
 
 ## 1. Summary
-The implementation plan for search profiles and A/B testing was successfully executed. The plugin has been extended with multi-file YAML configurations, a dynamic A/B routing engine, cookie variation controls to prevent HTTP caching collisions, custom Criteria extension option injection, database query logging, and two new commands (`tdbs:status` and `tdbs:search`) for advanced diagnostics.
+The implementation plan for search profiles and A/B testing was successfully executed. The plugin has been extended with multi-file YAML configurations with validation, a dynamic A/B routing engine, cookie variation controls gated on A/B test status, backwards-compatible zero-result tracking, per-query profiling with sales channel attribution, and two new commands (`tdbs:status` and `tdbs:search`) for advanced diagnostics.
 
 ## 2. Files Changed
 
 ### Created Files
-- `src/Migration/Migration1800000001CreateSearchLogTable.php`: Setup table structure `tdbs_search_log` to capture queries, profile associations, hit metrics, and speeds.
-- `src/Service/ProfileRegistry.php`: Handles parsing of connections from `config.yaml` and mapping profile rules dynamically.
+- `src/Migration/Migration1800000001CreateSearchLogTable.php`: Setup table structure `tdbs_search_log` to capture queries, profile associations, sales channel, hit metrics, and speeds.
+- `src/Service/ProfileRegistry.php`: Handles parsing of connections from `config.yaml` and mapping profile rules dynamically, with YAML validation and error reporting.
 - `src/Service/ProfileResolver.php`: Handles distribution and request bucketing algorithms.
-- `src/Subscriber/CacheVariationSubscriber.php`: Prevents cache pollution by forcing reverse proxies to vary on assigned user cookie buckets.
-- `src/Command/StatusConfigCommand.php`: Validates service accessibility and provides configuration status summaries.
-- `src/Command/SearchPlaygroundCommand.php`: Provides side-by-side execution summaries of target search configurations inside a console context.
+- `src/Subscriber/CacheVariationSubscriber.php`: Sets variation cookie and conditionally adds `Vary: Cookie` only when A/B testing is active, preserving HTTP cache during normal operation.
 
 ### Modified Files
-- `src/Route/DecoratedProductSearchRoute.php`: Overhauled search loading logic to route requests through active search profiles, inject options, and log execution metadata.
+- `src/Route/DecoratedProductSearchRoute.php`: Overhauled search loading logic to route requests through active search profiles, inject options, and log execution metadata. **Retains** existing `logZeroSearchResult` for backward compatibility with the `tdbs_zero_search` admin panel module.
 - `src/Route/DecoratedProductSuggestRoute.php`: Integrated custom profile and options handling for autocomplete search suggestions.
 - `README.md`: Updated code structure documentation, directories, profile configuration snippets, and new console commands.
 
 ## 3. Key Changes
-- **Modular YAML Configurations:** Swapped database properties for file-based configuration profiles, simplifying version-controlled deployment strategies.
-- **Criteria Option Extensions:** Introduced Shopware-compliant `ArrayStruct` additions, allowing custom parameters (such as `score_threshold` or custom indices) to be consumed seamlessly within individual engines without changing the core method signature.
-- **Cache Segregation (`Vary: Cookie`):** Embedded header adjustments into Symfony's kernel cycle, eliminating cross-profile cache poisoning on storefront search pages.
-- **Search Analytics Database Tracking:** Relocated simple zero-result database logging to full query profile performance tracking.
+- **Modular YAML Configurations:** Swapped database properties for file-based configuration profiles with try/catch parsing and structural validation.
+- **Criteria Option Extensions:** Introduced Shopware-compliant `ArrayStruct` additions; the winning backend's options are saved and re-injected after the pipeline loop so `decorated->load()` always sees the correct options.
+- **Cache Segregation (`Vary: Cookie`):** Only activates the `Vary: Cookie` header when `ab_testing.enabled` is true, preserving the HTTP cache during normal operation. Cookie uses `SameSite=Lax`.
+- **Backward Compatibility:** The existing `tdbs_zero_search` table and `logZeroSearchResult` method are retained. The new `tdbs_search_log` table supplements them with per-query profiling.
+- **Connection Health Checks:** Use Symfony `HttpClientInterface` instead of raw `ext-curl`, eliminating an implicit extension dependency.
 
 ## 4. Deviations from Plan
-- None. The implementation was executed precisely as specified by the target architecture.
+- **backward compat:** `tdbs_zero_search` table and its admin panel module are retained alongside the new `tdbs_search_log` table, rather than replaced.
+- **Cache strategy:** `Vary: Cookie` is now gated on `ab_testing.enabled` to avoid disabling the HTTP cache when no A/B test is active.
+- **Health checks:** Switched from `ext-curl` to Symfony `HttpClientInterface` for connection health checks.
+- **Search playground CLI:** Added `--resolve-products` flag for optional product name resolution.
 
 ## 5. Technical Decisions
 - **Shopware criteria extensions:** Leveraged `$criteria->addExtension()` over signature modification to preserve standard interfaces and comply with SOLID rules.
 - **Attribute routing/wiring:** Standardized on Symfony 7.4 Autowire/Autoconfigure attributes to eliminate boilerplate XML registration.
+- **YAML validation at boot:** `ProfileRegistry` validates profile structure and A/B distribution references during container compilation, with errors surfaced via `getValidationErrors()` for `tdbs:status`.
+- **Sales channel context factory:** Uses the concrete `SalesChannelContextFactory` service via the container (not the deprecated `AbstractSalesChannelContextFactory`), ensuring SW 6.7 compatibility.
+- **HTTP health checks:** Uses Symfony's `HttpClientInterface` instead of `ext-curl` for portability.
 
 ## 6. Testing Notes
-- **Verification on configurations:** Created directories `config/tdbs` and `config/tdbs/profiles/` and populated profiles.
-- **Status verification:** Executed `php bin/console tdbs:status` to ensure healthy connections and profile resolution.
-- **Terminal testing verification:** Executed `php bin/console tdbs:search "term"` and validated output logic and timing benchmarks.
+- **YAML validation:** Created profiles with missing `pipeline` keys and invalid A/B references; verified errors appear via `$profileRegistry->getValidationErrors()`.
+- **Config directory:** Created `config/tdbs/` and `config/tdbs/profiles/` and populated with test profiles.
+- **Status verification:** Executed `php bin/console tdbs:status` to confirm healthy connections, profile resolution, and validation error reporting.
+- **CLI search testing:** Executed `php bin/console tdbs:search "term"` and `php bin/console tdbs:search "term" --profile=semantic_hybrid --resolve-products` to validate output logic, timing, and product name resolution.
 
 ## 7. Usage Examples
 - `php bin/console tdbs:status`
-- `php bin/console tdbs:search "jacket" --profile=semantic_hybrid`
+- `php bin/console tdbs:search "jacket"`
+- `php bin/console tdbs:search "jacket" --profile=semantic_hybrid --resolve-products`
 
 ## 8. Documentation Updates
 - Updated `README.md` to reference directories, configuration structures, and updated commands.
