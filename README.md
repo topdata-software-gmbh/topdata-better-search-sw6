@@ -74,6 +74,16 @@ ab_testing:
     keyword_heavy: 30
     semantic_hybrid: 30
     prefix_completion: 40
+
+# AI & LLM configurations for generating SEO search synonyms
+ai:
+  provider: "openai" # Options: openai | ollama
+  openai:
+    api_key: "sk-proj-YourActualOpenAiKeyHere"
+    model: "gpt-4o-mini"
+  ollama:
+    host: "http://localhost:11434"
+    model: "llama3"
 ```
 
 #### Profile 1 (`config/tdbs/profiles/keyword_heavy.yaml`)
@@ -200,6 +210,15 @@ php bin/console tdbs:synonyms:delete "wc-papier"
 # Clear all synonyms (with interactive confirmation)
 php bin/console tdbs:synonyms:clear
 php bin/console tdbs:synonyms:clear --force
+
+### AI-Assisted Synonym Management
+
+```bash
+# Query the active AI Provider and get synonym suggestions for "jacket"
+php bin/console tdbs:synonyms:generate-ai "jacket"
+
+# Generate synonyms and bypass confirmation to save directly to DB
+php bin/console tdbs:synonyms:generate-ai "wc-papier" --force
 ```
 
 ---

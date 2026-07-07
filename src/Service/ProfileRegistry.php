@@ -83,8 +83,9 @@ class ProfileRegistry
             }
 
             $backend = $step['backend'];
+            $options = $step['options'] ?? [];
+
             if ($backend === 'elasticsearch') {
-                $options = $step['options'] ?? [];
                 if (!isset($options['index_name']) || !\is_string($options['index_name'])) {
                     return sprintf('Profile "%s" pipeline step %d (elasticsearch) requires a valid "index_name" option.', $profileId, $index);
                 }
@@ -95,6 +96,12 @@ class ProfileRegistry
                     if (!\in_array($type, ['edge_ngram', 'standard', 'none'], true)) {
                         return sprintf('Profile "%s" pipeline step %d uses invalid ngram type "%s". Allowed: edge_ngram, standard, none.', $profileId, $index, $type);
                     }
+                }
+            }
+
+            if ($backend === 'meilisearch') {
+                if (!isset($options['index_name']) || !\is_string($options['index_name'])) {
+                    return sprintf('Profile "%s" pipeline step %d (meilisearch) requires a valid "index_name" option.', $profileId, $index);
                 }
             }
         }
