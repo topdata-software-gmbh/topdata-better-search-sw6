@@ -111,6 +111,20 @@ class StatusConfigCommand extends TopdataFoundationSW6
         } else {
             CliLogger::info('Qdrant: Not configured.');
         }
+
+        // 3. Check Elasticsearch
+        $esHost = $connections['elasticsearch']['host'] ?? null;
+        if ($esHost) {
+            $esHostClean = rtrim($esHost, '/');
+            $status = $this->pingUrl($esHostClean);
+            if ($status) {
+                CliLogger::success(sprintf('Elasticsearch: Connected (%s)', $esHost));
+            } else {
+                CliLogger::error(sprintf('Elasticsearch: UNREACHABLE (%s)', $esHost));
+            }
+        } else {
+            CliLogger::info('Elasticsearch: Not configured.');
+        }
     }
 
     private function pingUrl(string $url): bool

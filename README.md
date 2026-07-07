@@ -49,7 +49,8 @@ config/tdbs/
 ├── config.yaml               # Shared database settings and traffic splits
 └── profiles/                 # Custom search profiles
     ├── keyword_heavy.yaml    # Strategy 1 (Meilisearch primary)
-    └── semantic_hybrid.yaml  # Strategy 2 (Qdrant with fallbacks)
+    ├── semantic_hybrid.yaml  # Strategy 2 (Qdrant with fallbacks)
+    └── prefix_completion.yaml # Strategy 3 (Elasticsearch with precise edge-ngram)
 ```
 
 ### 2. File Specifications
@@ -62,12 +63,17 @@ connections:
     api_key: "masterKey"
   qdrant:
     host: "http://localhost:6333"
+  elasticsearch:
+    host: "http://localhost:9200"
+    username: "elastic"     # Optional basic authentication
+    password: "password"    # Optional basic authentication
 
 ab_testing:
   enabled: true
   distribution:
-    keyword_heavy: 50
-    semantic_hybrid: 50
+    keyword_heavy: 30
+    semantic_hybrid: 30
+    prefix_completion: 40
 ```
 
 #### Profile 1 (`config/tdbs/profiles/keyword_heavy.yaml`)
@@ -96,6 +102,24 @@ pipeline:
     options:
       index_name: "products_v1"
       limit: 30
+```
+
+#### Profile 3 (`config/tdbs/profiles/prefix_completion.yaml`)
+```yaml
+name: "Prefix Edge N-Gram Completion"
+description: "Precision prefix autocomplete using standalone index-time edge-ngrams"
+pipeline:
+  - backend: elasticsearch
+    options:
+      index_name: "tdbs_products_prefix"
+      limit: 25
+      ngram:
+        enabled: true
+        type: "edge_ngram" # Options: edge_ngram | standard | none
+        min_gram: 3
+        max_gram: 6
+        use_separate_search_analyzer: true # Decouples indexing and search analyzers to avoid false matches
+  - backend: shopware_core
 ```
 
 ---

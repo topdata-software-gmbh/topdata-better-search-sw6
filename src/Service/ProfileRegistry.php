@@ -81,6 +81,22 @@ class ProfileRegistry
             if (!isset($step['backend']) || !\is_string($step['backend'])) {
                 return sprintf('Profile "%s" pipeline step %d is missing a "backend" key.', $profileId, $index);
             }
+
+            $backend = $step['backend'];
+            if ($backend === 'elasticsearch') {
+                $options = $step['options'] ?? [];
+                if (!isset($options['index_name']) || !\is_string($options['index_name'])) {
+                    return sprintf('Profile "%s" pipeline step %d (elasticsearch) requires a valid "index_name" option.', $profileId, $index);
+                }
+
+                $ngram = $options['ngram'] ?? [];
+                if (!empty($ngram)) {
+                    $type = $ngram['type'] ?? 'edge_ngram';
+                    if (!\in_array($type, ['edge_ngram', 'standard', 'none'], true)) {
+                        return sprintf('Profile "%s" pipeline step %d uses invalid ngram type "%s". Allowed: edge_ngram, standard, none.', $profileId, $index, $type);
+                    }
+                }
+            }
         }
 
         return null;
