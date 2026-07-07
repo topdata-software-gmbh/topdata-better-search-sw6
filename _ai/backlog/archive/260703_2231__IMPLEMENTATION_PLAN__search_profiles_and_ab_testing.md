@@ -3,7 +3,8 @@ filename: "_ai/backlog/active/260703_2231__IMPLEMENTATION_PLAN__search_profiles_
 title: "Implementation Plan for Search Profiles and A/B Testing"
 createdAt: 2026-07-03 22:31
 updatedAt: 2026-07-03 22:31
-status: in-progress
+status: completed
+completedAt: 2026-07-07 12:47
 priority: high
 tags: [search, shopware, yaml, config, ab-testing, cli-first]
 estimatedComplexity: complex
@@ -1191,6 +1192,7 @@ updatedAt: 2026-07-03 22:31
 planFile: "_ai/backlog/active/260703_2231__IMPLEMENTATION_PLAN__search_profiles_and_ab_testing.md"
 project: "topdata-better-search-sw6"
 status: completed
+completedAt: 2026-07-07 12:47
 filesCreated: 6
 filesModified: 3
 filesDeleted: 0

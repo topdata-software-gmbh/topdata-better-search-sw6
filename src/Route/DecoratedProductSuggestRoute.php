@@ -7,11 +7,14 @@ use Shopware\Core\Content\Product\SalesChannel\Suggest\ProductSuggestRouteRespon
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotFilter;
+use Shopware\Core\Framework\Struct\ArrayStruct;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
+use Topdata\TopdataBetterSearchSW6\Service\ProfileResolver;
+use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 
 #[AsDecorator(decorates: AbstractProductSuggestRoute::class)]
 class DecoratedProductSuggestRoute extends AbstractProductSuggestRoute
@@ -19,7 +22,9 @@ class DecoratedProductSuggestRoute extends AbstractProductSuggestRoute
     public function __construct(
         private readonly AbstractProductSuggestRoute $decorated,
         private readonly SearchBackendRegistry $backendRegistry,
-        private readonly SystemConfigService $systemConfigService
+        private readonly SystemConfigService $systemConfigService,
+        private readonly ProfileResolver $profileResolver,
+        private readonly ProfileRegistry $profileRegistry
     ) {}
 
     public function getDecorated(): AbstractProductSuggestRoute
@@ -32,11 +37,46 @@ class DecoratedProductSuggestRoute extends AbstractProductSuggestRoute
         $this->applyCategoryExclusions($criteria, $context);
 
         $ids = null;
-        foreach ($this->backendRegistry->getActiveBackends() as $backend) {
-            $resultIds = $backend->search($criteria, $context);
-            if ($resultIds !== null) {
-                $ids = $resultIds;
-                break;
+        $resolvedOptions = null;
+        $profileId = $this->profileResolver->resolveActiveProfile($request);
+        $profile = $this->profileRegistry->getProfile($profileId);
+
+        if ($profile !== null && isset($profile['pipeline']) && \is_array($profile['pipeline'])) {
+            foreach ($profile['pipeline'] as $step) {
+                if (!isset($step['backend'])) {
+                    continue;
+                }
+
+                $backend = $this->backendRegistry->getBackend($step['backend']);
+                if ($backend === null) {
+                    continue;
+                }
+
+                $options = $step['options'] ?? [];
+                $criteria->addExtension('tdbs_options', new ArrayStruct($options));
+
+                $resultIds = $backend->search($criteria, $context);
+                if ($resultIds !== null) {
+                    $ids = $resultIds;
+                    $resolvedOptions = $options;
+                    break;
+                }
+            }
+
+            if ($resolvedOptions !== null) {
+                $criteria->addExtension('tdbs_options', new ArrayStruct($resolvedOptions));
+            } else {
+                $criteria->removeExtension('tdbs_options');
+            }
+        } else {
+            $criteria->removeExtension('tdbs_options');
+
+            foreach ($this->backendRegistry->getActiveBackends() as $backend) {
+                $resultIds = $backend->search($criteria, $context);
+                if ($resultIds !== null) {
+                    $ids = $resultIds;
+                    break;
+                }
             }
         }
 

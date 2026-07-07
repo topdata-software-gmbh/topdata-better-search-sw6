@@ -8,14 +8,16 @@
 
 Topdata Better Search is a highly configurable search engine integration for Shopware 6.7. It decouples storefront search from any single provider, enabling you to leverage **Elasticsearch**, **Meilisearch**, **Qdrant**, or the **Shopware Core** engine.
 
-The plugin routes search requests through a prioritized fallback chain. Only one backend ultimately handles and returns the results for a given query; **results from multiple backends are never merged or combined**, preserving pagination and ranking integrity.
+The plugin routes search requests through a prioritized, multi-profile fallback chain. Only one backend ultimately handles and returns the results for a given query; **results from multiple backends are never merged or combined**, preserving pagination and ranking integrity.
 
 Built on a clean service abstraction layer, the plugin decorates the native `ProductSearchRoute` and `ProductSuggestRoute` to intercept queries and execute them against the active backend chain.
 
 ## Features
 
-* **🔌 Pluggable Search Backends** — Swap search engines via a clean `SearchBackendInterface`. Ships with stubs for Shopware Core, Meilisearch, and Qdrant.
-* **⛓️ Prioritized Fallback Routing** — Evaluates active search backends in sequence. The first backend that returns a non-null result set handles the query, with others acting as fallbacks.
+* **🔌 Pluggable Search Profiles** — Configure distinct search pipelines and A/B test splits in yaml format.
+* **⛓️ Prioritized Fallback Routing** — Evaluates active search backends in sequence per profile. The first backend that returns a non-null result set handles the query, with others acting as fallbacks.
+* **📈 A/B Testing Suite** — Distribute customer queries across profiles and log query parameters, hits, and processing speeds.
+* **❄️ Cache Variation Handling** — Employs cookie variations (`Vary: Cookie`) during active A/B tests to prevent reverse proxy cache collisions.
 * **⚡ Elasticsearch Analyzer Optimization** — Globally registers a `word_delimiter_graph` token filter for better matching on hyphenated/concatenated terms (e.g., `WC-Papier` matching `WC Papier`).
 * **📖 Synonym Management Suite** — Full CLI toolset to validate, import, export, list, delete, and clear synonym mappings.
 * **🔍 Zero-Result Tracking** — Automatically logs storefront searches that return no results to a dedicated database table for analysis.
@@ -32,6 +34,69 @@ The plugin evaluates backends sequentially using a chain-of-responsibility patte
    * If a backend returns `null`, the query falls through to the next engine in the chain.
    * If a backend returns an array of matching product IDs (including an empty array `[]`), execution stops, and those IDs are used to filter the Shopware product collection.
 3. If no custom backend handles the query, the native Shopware search mechanism is used.
+
+---
+
+## Configuration Strategy (Profiles & Connections)
+
+This plugin bypasses typical database system configuration for developer-centric, version-controlled YAML files.
+
+### 1. Directory Structure
+Create a directory named `config/tdbs/` in your Shopware project root:
+
+```text
+config/tdbs/
+├── config.yaml               # Shared database settings and traffic splits
+└── profiles/                 # Custom search profiles
+    ├── keyword_heavy.yaml    # Strategy 1 (Meilisearch primary)
+    └── semantic_hybrid.yaml  # Strategy 2 (Qdrant with fallbacks)
+```
+
+### 2. File Specifications
+
+#### Global Configuration (`config/tdbs/config.yaml`)
+```yaml
+connections:
+  meilisearch:
+    host: "http://localhost:7700"
+    api_key: "masterKey"
+  qdrant:
+    host: "http://localhost:6333"
+
+ab_testing:
+  enabled: true
+  distribution:
+    keyword_heavy: 50
+    semantic_hybrid: 50
+```
+
+#### Profile 1 (`config/tdbs/profiles/keyword_heavy.yaml`)
+```yaml
+name: "Keyword Heavy"
+description: "Meilisearch as primary with shopware core fallback"
+pipeline:
+  - backend: meilisearch
+    options:
+      index_name: "products_v1"
+      limit: 30
+  - backend: shopware_core
+```
+
+#### Profile 2 (`config/tdbs/profiles/semantic_hybrid.yaml`)
+```yaml
+name: "Semantic Hybrid"
+description: "Qdrant Vector search followed by Meilisearch fallback"
+pipeline:
+  - backend: qdrant
+    options:
+      collection_name: "products_embeddings"
+      score_threshold: 0.85
+      limit: 20
+  - backend: meilisearch
+    options:
+      index_name: "products_v1"
+      limit: 30
+```
 
 ---
 
@@ -62,6 +127,22 @@ The listing page shows all search terms that returned no products, with columns 
 ## Command Reference
 
 All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/foundation-sw6`.
+
+### Diagnostics & Testing
+
+```bash
+# Verify profile load success and connection health checks
+php bin/console tdbs:status
+
+# Query test directly from terminal using the first active profile
+php bin/console tdbs:search "jacket"
+
+# Query test specifying a custom profile strategy
+php bin/console tdbs:search "jacket" --profile=semantic_hybrid
+
+# Resolve and display product names for returned IDs
+php bin/console tdbs:search "jacket" --profile=semantic_hybrid --resolve-products
+```
 
 ### Index Management
 

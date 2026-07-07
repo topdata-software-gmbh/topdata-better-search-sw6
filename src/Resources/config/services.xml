@@ -13,5 +13,10 @@
         <service id="Topdata\TopdataBetterSearchSW6\Entity\ZeroSearch\ZeroSearchDefinition">
             <tag name="shopware.entity.definition"/>
         </service>
+
+        <!-- Profile Registry (requires project dir for config loading) -->
+        <service id="Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry">
+            <argument key="$projectDir">%kernel.project_dir%</argument>
+        </service>
     </services>
 </container>
