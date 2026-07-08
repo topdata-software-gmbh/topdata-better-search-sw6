@@ -1115,7 +1115,7 @@ pipeline:
 
 ## Command Reference
 
-All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/foundation-sw6`.
+All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/topdata-foundation-sw6`.
 
 ### Diagnostics & Testing
 
@@ -1169,7 +1169,7 @@ php bin/console tdbs:synonyms:clear --force
 ## Requirements
 
 - Shopware 6.7.*
-- `topdata/foundation-sw6` ^1.0
+- `topdata/topdata-foundation-sw6` ^1.0
 
 ## License
 

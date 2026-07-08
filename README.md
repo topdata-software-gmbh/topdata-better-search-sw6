@@ -160,7 +160,7 @@ The listing page shows all search terms that returned no products, with columns 
 
 ## Command Reference
 
-All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/foundation-sw6`.
+All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/topdata-foundation-sw6`.
 
 ### Diagnostics & Testing
 
@@ -254,7 +254,7 @@ The registry picks it up automatically — no service XML configuration needed.
 ## Requirements
 
 - Shopware 6.7.*
-- `topdata/foundation-sw6` ^1.0
+- `topdata/topdata-foundation-sw6` ^1.0
 
 ## License
 

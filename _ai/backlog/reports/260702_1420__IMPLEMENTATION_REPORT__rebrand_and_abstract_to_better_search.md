@@ -38,7 +38,7 @@ Successfully completed all 8 phases of the plan to rebrand and abstract the plug
 ## Files Created (19)
 
 ### Phase 2: Core Base
-- `composer.json` — updated with new name, deps (`topdata/foundation-sw6`), autoload
+- `composer.json` — updated with new name, deps (`topdata/topdata-foundation-sw6`), autoload
 - `src/TopdataBetterSearchSW6.php` — new rebranded plugin entry point with compiler pass
 - `src/DependencyInjection/ElasticsearchAnalysisCompilerPass.php` — updated namespace
 

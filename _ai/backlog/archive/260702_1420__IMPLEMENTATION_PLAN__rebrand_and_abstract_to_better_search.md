@@ -80,7 +80,7 @@ Add dependency requirements and update autoloader namespaces.
     ],
     "require":     {
         "shopware/core": "6.7.*",
-        "topdata/foundation-sw6": "^1.0"
+        "topdata/topdata-foundation-sw6": "^1.3"
     },
     "extra":       {
         "shopware-plugin-class": "Topdata\\TopdataBetterSearchSW6\\TopdataBetterSearchSW6",
