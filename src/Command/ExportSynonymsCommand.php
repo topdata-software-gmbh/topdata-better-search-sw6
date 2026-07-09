@@ -11,7 +11,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:export',
+    name: 'topdata:better-search:synonyms:export',
     description: 'Exports synonym mappings to a file'
 )]
 class ExportSynonymsCommand extends AbstractTopdataCommand

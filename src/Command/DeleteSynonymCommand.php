@@ -11,7 +11,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:delete',
+    name: 'topdata:better-search:synonyms:delete',
     description: 'Deletes a specific synonym mapping by term'
 )]
 class DeleteSynonymCommand extends AbstractTopdataCommand

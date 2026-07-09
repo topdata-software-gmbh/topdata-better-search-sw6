@@ -29,7 +29,7 @@ The core changes introduce:
 3. **Pipeline Interception:** `DecoratedProductSearchRoute` and `DecoratedProductSuggestRoute` are refactored to execute the specific profile's pipeline sequence, passing custom options as Criteria extensions to the backends.
 4. **Cache Variations:** A subscriber injects `Vary: Cookie` headers when an A/B test is active, preventing reverse proxy cache collisions.
 5. **Search Analytics Logging:** Upgrades logging from zero-result tracking to a detailed query metrics table (`tdbs_search_log`), capturing performance and search counts per profile.
-6. **CLI-First Diagnostics:** Two new commands are added: `tdbs:status` for health checks, and `tdbs:search` for side-by-side CLI-based testing.
+6. **CLI-First Diagnostics:** Two new commands are added: `topdata:better-search:status` for health checks, and `topdata:better-search:search` for side-by-side CLI-based testing.
 
 ## 3. Project Environment Details
 
@@ -131,7 +131,7 @@ class ProfileRegistry
                 $this->globalConfig = \is_array($parsed) ? $parsed : [];
             } catch (\Throwable $e) {
                 $this->validationErrors[] = sprintf('Failed to parse %s: %s', $globalFile, $e->getMessage());
-                $this->logger?->error('TDBS: Failed to parse global config', ['file' => $globalFile, 'error' => $e->getMessage()]);
+                $this->logger?->error('topdata:better-search: Failed to parse global config', ['file' => $globalFile, 'error' => $e->getMessage()]);
             }
         }
 
@@ -149,14 +149,14 @@ class ProfileRegistry
                         $validationError = $this->validateProfile($profileId, $profileData);
                         if ($validationError !== null) {
                             $this->validationErrors[] = $validationError;
-                            $this->logger?->warning('TDBS: Invalid profile skipped', ['profile' => $profileId, 'error' => $validationError]);
+                            $this->logger?->warning('topdata:better-search: Invalid profile skipped', ['profile' => $profileId, 'error' => $validationError]);
                             continue;
                         }
                         $this->profiles[$profileId] = $profileData;
                     }
                 } catch (\Throwable $e) {
                     $this->validationErrors[] = sprintf('Failed to parse profile "%s": %s', $profileId, $e->getMessage());
-                    $this->logger?->error('TDBS: Failed to parse profile', ['profile' => $profileId, 'error' => $e->getMessage()]);
+                    $this->logger?->error('topdata:better-search: Failed to parse profile', ['profile' => $profileId, 'error' => $e->getMessage()]);
                 }
             }
         }
@@ -696,9 +696,9 @@ class CacheVariationSubscriber implements EventSubscriberInterface
 
 ---
 
-### Phase 6: CLI-First Commands (`tdbs:status` & `tdbs:search`)
+### Phase 6: CLI-First Commands (`topdata:better-search:status` & `topdata:better-search:search`)
 
-We will add two core diagnostic console commands mapping to the `tdbs:` prefix, extending `TopdataFoundationSW6`.
+We will add two core diagnostic console commands mapping to the `topdata:better-search:` prefix, extending `TopdataFoundationSW6`.
 
 #### [NEW FILE] `src/Command/StatusConfigCommand.php`
 ```php
@@ -715,7 +715,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 
 #[AsCommand(
-    name: 'tdbs:status',
+    name: 'topdata:better-search:status',
     description: 'Diagnoses profile parsing, database connection health, and A/B configurations'
 )]
 class StatusConfigCommand extends TopdataFoundationSW6
@@ -857,7 +857,7 @@ use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
 
 #[AsCommand(
-    name: 'tdbs:search',
+    name: 'topdata:better-search:search',
     description: 'Executes a playground search query against a specific search profile'
 )]
 class SearchPlaygroundCommand extends TopdataFoundationSW6
@@ -1115,53 +1115,53 @@ pipeline:
 
 ## Command Reference
 
-All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/topdata-foundation-sw6`.
+All commands use the `topdata:better-search:` prefix and output styled via `CliLogger` from `topdata/topdata-foundation-sw6`.
 
 ### Diagnostics & Testing
 
 ```bash
 # Verify profile load success and connection health checks
-php bin/console tdbs:status
+php bin/console topdata:better-search:status
 
 # Query test directly from terminal using the first active profile
-php bin/console tdbs:search "jacket"
+php bin/console topdata:better-search:search "jacket"
 
 # Query test specifying a custom profile strategy
-php bin/console tdbs:search "jacket" --profile=semantic_hybrid
+php bin/console topdata:better-search:search "jacket" --profile=semantic_hybrid
 ```
 
 ### Index Management
 
 ```bash
 # Rebuild indices for all configured custom search backends
-php bin/console tdbs:index:rebuild --limit=100
+php bin/console topdata:better-search:index:rebuild --limit=100
 ```
 
 ### Synonym Management
 
 ```bash
 # Validate a synonym mapping file
-php bin/console tdbs:synonyms:validate synonyms.txt
+php bin/console topdata:better-search:synonyms:validate synonyms.txt
 
 # Dry-run import (validate without persisting)
-php bin/console tdbs:synonyms:import synonyms.txt --dry-run
+php bin/console topdata:better-search:synonyms:import synonyms.txt --dry-run
 
 # Import synonym mappings
-php bin/console tdbs:synonyms:import synonyms.txt
+php bin/console topdata:better-search:synonyms:import synonyms.txt
 
 # List all synonym mappings
-php bin/console tdbs:synonyms:list --limit=50
-php bin/console tdbs:synonyms:list --filter="papier"
+php bin/console topdata:better-search:synonyms:list --limit=50
+php bin/console topdata:better-search:synonyms:list --filter="papier"
 
 # Export to a file
-php bin/console tdbs:synonyms:export backup.txt
+php bin/console topdata:better-search:synonyms:export backup.txt
 
 # Delete a specific synonym
-php bin/console tdbs:synonyms:delete "wc-papier"
+php bin/console topdata:better-search:synonyms:delete "wc-papier"
 
 # Clear all synonyms (with interactive confirmation)
-php bin/console tdbs:synonyms:clear
-php bin/console tdbs:synonyms:clear --force
+php bin/console topdata:better-search:synonyms:clear
+php bin/console topdata:better-search:synonyms:clear --force
 ```
 
 ---
@@ -1201,7 +1201,7 @@ documentType: IMPLEMENTATION_REPORT
 ---
 
 ## 1. Summary
-The implementation plan for search profiles and A/B testing was successfully executed. The plugin has been extended with multi-file YAML configurations with validation, a dynamic A/B routing engine, cookie variation controls gated on A/B test status, backwards-compatible zero-result tracking, per-query profiling with sales channel attribution, and two new commands (`tdbs:status` and `tdbs:search`) for advanced diagnostics.
+The implementation plan for search profiles and A/B testing was successfully executed. The plugin has been extended with multi-file YAML configurations with validation, a dynamic A/B routing engine, cookie variation controls gated on A/B test status, backwards-compatible zero-result tracking, per-query profiling with sales channel attribution, and two new commands (`topdata:better-search:status` and `topdata:better-search:search`) for advanced diagnostics.
 
 ## 2. Files Changed
 
@@ -1232,20 +1232,20 @@ The implementation plan for search profiles and A/B testing was successfully exe
 ## 5. Technical Decisions
 - **Shopware criteria extensions:** Leveraged `$criteria->addExtension()` over signature modification to preserve standard interfaces and comply with SOLID rules.
 - **Attribute routing/wiring:** Standardized on Symfony 7.4 Autowire/Autoconfigure attributes to eliminate boilerplate XML registration.
-- **YAML validation at boot:** `ProfileRegistry` validates profile structure and A/B distribution references during container compilation, with errors surfaced via `getValidationErrors()` for `tdbs:status`.
+- **YAML validation at boot:** `ProfileRegistry` validates profile structure and A/B distribution references during container compilation, with errors surfaced via `getValidationErrors()` for `topdata:better-search:status`.
 - **Sales channel context factory:** Uses the concrete `SalesChannelContextFactory` service via the container (not the deprecated `AbstractSalesChannelContextFactory`), ensuring SW 6.7 compatibility.
 - **HTTP health checks:** Uses Symfony's `HttpClientInterface` instead of `ext-curl` for portability.
 
 ## 6. Testing Notes
 - **YAML validation:** Created profiles with missing `pipeline` keys and invalid A/B references; verified errors appear via `$profileRegistry->getValidationErrors()`.
 - **Config directory:** Created `config/tdbs/` and `config/tdbs/profiles/` and populated with test profiles.
-- **Status verification:** Executed `php bin/console tdbs:status` to confirm healthy connections, profile resolution, and validation error reporting.
-- **CLI search testing:** Executed `php bin/console tdbs:search "term"` and `php bin/console tdbs:search "term" --profile=semantic_hybrid --resolve-products` to validate output logic, timing, and product name resolution.
+- **Status verification:** Executed `php bin/console topdata:better-search:status` to confirm healthy connections, profile resolution, and validation error reporting.
+- **CLI search testing:** Executed `php bin/console topdata:better-search:search "term"` and `php bin/console topdata:better-search:search "term" --profile=semantic_hybrid --resolve-products` to validate output logic, timing, and product name resolution.
 
 ## 7. Usage Examples
-- `php bin/console tdbs:status`
-- `php bin/console tdbs:search "jacket"`
-- `php bin/console tdbs:search "jacket" --profile=semantic_hybrid --resolve-products`
+- `php bin/console topdata:better-search:status`
+- `php bin/console topdata:better-search:search "jacket"`
+- `php bin/console topdata:better-search:search "jacket" --profile=semantic_hybrid --resolve-products`
 
 ## 8. Documentation Updates
 - Updated `README.md` to reference directories, configuration structures, and updated commands.

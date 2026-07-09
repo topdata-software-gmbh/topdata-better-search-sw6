@@ -641,10 +641,10 @@ pipeline:
         type: "edge_ngram"
         use_separate_search_analyzer: true
 ```
-1. Run status diagnostics: `bin/console tdbs:status`.
-2. Sync the indices: `bin/console tdbs:index:rebuild`.
+1. Run status diagnostics: `bin/console topdata:better-search:status`.
+2. Sync the indices: `bin/console topdata:better-search:index:rebuild`.
 3. Search playground verification:
-   * `bin/console tdbs:search "vent" --profile=test_precision` should return `"Ventilator"`.
-   * `bin/console tdbs:search "enti" --profile=test_precision` should return **zero matches** (confirming that Cementit is no longer matched!).
+   * `bin/console topdata:better-search:search "vent" --profile=test_precision` should return `"Ventilator"`.
+   * `bin/console topdata:better-search:search "enti" --profile=test_precision` should return **zero matches** (confirming that Cementit is no longer matched!).
 ```
 

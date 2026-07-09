@@ -72,7 +72,7 @@ class ProfileRegistry
                 $this->globalConfig = \is_array($parsed) ? $parsed : [];
             } catch (\Throwable $e) {
                 $this->validationErrors[] = sprintf('Failed to parse %s: %s', $globalFile, $e->getMessage());
-                $this->logger?->error('TDBS: Failed to parse global config', ['file' => $globalFile, 'error' => $e->getMessage()]);
+                $this->logger?->error('topdata:better-search: Failed to parse global config', ['file' => $globalFile, 'error' => $e->getMessage()]);
             }
         }
 
@@ -90,14 +90,14 @@ class ProfileRegistry
                         $validationError = $this->validateProfile($profileId, $profileData);
                         if ($validationError !== null) {
                             $this->validationErrors[] = $validationError;
-                            $this->logger?->warning('TDBS: Invalid profile skipped', ['profile' => $profileId, 'error' => $validationError]);
+                            $this->logger?->warning('topdata:better-search: Invalid profile skipped', ['profile' => $profileId, 'error' => $validationError]);
                             continue;
                         }
                         $this->profiles[$profileId] = $profileData;
                     }
                 } catch (\Throwable $e) {
                     $this->validationErrors[] = sprintf('Failed to parse profile "%s": %s', $profileId, $e->getMessage());
-                    $this->logger?->error('TDBS: Failed to parse profile', ['profile' => $profileId, 'error' => $e->getMessage()]);
+                    $this->logger?->error('topdata:better-search: Failed to parse profile', ['profile' => $profileId, 'error' => $e->getMessage()]);
                 }
             }
         }
@@ -641,7 +641,7 @@ use Topdata\TopdataBetterSearchSW6\Service\AiSynonymGenerator;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:generate-ai',
+    name: 'topdata:better-search:synonyms:generate-ai',
     description: 'Generates related search synonyms using LLM context'
 )]
 class GenerateAiSynonymsCommand extends TopdataFoundationSW6
@@ -781,10 +781,10 @@ ai:
 
 ```bash
 # Query the active AI Provider and get synonym suggestions for "jacket"
-php bin/console tdbs:synonyms:generate-ai "jacket"
+php bin/console topdata:better-search:synonyms:generate-ai "jacket"
 
 # Generate synonyms and bypass confirmation to save directly to DB
-php bin/console tdbs:synonyms:generate-ai "wc-papier" --force
+php bin/console topdata:better-search:synonyms:generate-ai "wc-papier" --force
 ```
 ```
 
@@ -838,12 +838,12 @@ The Meilisearch custom search engine is fully functional and ready for productio
 - **Verification via CLI:**
   ```bash
   # Sync products to newly created Meilisearch backend
-  php bin/console tdbs:index:rebuild
+  php bin/console topdata:better-search:index:rebuild
   
   # Dry-run test searching term through Meilisearch strategy
-  php bin/console tdbs:search "jacket" --profile=keyword_heavy --resolve-products
+  php bin/console topdata:better-search:search "jacket" --profile=keyword_heavy --resolve-products
   
   # Run and verify AI Synonym Generator
-  php bin/console tdbs:synonyms:generate-ai "hoodie"
+  php bin/console topdata:better-search:synonyms:generate-ai "hoodie"
   ```
 

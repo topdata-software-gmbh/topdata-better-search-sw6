@@ -38,11 +38,11 @@ The Meilisearch custom search engine is fully functional and ready for productio
 - **Verification via CLI:**
   ```bash
   # Sync products to newly created Meilisearch backend
-  php bin/console tdbs:index:rebuild
+  php bin/console topdata:better-search:index:rebuild
 
   # Dry-run test searching term through Meilisearch strategy
-  php bin/console tdbs:search "jacket" --profile=keyword_heavy --resolve-products
+  php bin/console topdata:better-search:search "jacket" --profile=keyword_heavy --resolve-products
 
   # Run and verify AI Synonym Generator
-  php bin/console tdbs:synonyms:generate-ai "hoodie"
+  php bin/console topdata:better-search:synonyms:generate-ai "hoodie"
   ```

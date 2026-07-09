@@ -11,7 +11,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:validate',
+    name: 'topdata:better-search:synonyms:validate',
     description: 'Validates a synonym mapping file format'
 )]
 class ValidateSynonymsCommand extends AbstractTopdataCommand

@@ -12,7 +12,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:import',
+    name: 'topdata:better-search:synonyms:import',
     description: 'Imports synonym mappings from a file'
 )]
 class ImportSynonymsCommand extends AbstractTopdataCommand

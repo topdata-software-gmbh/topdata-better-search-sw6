@@ -11,7 +11,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:list',
+    name: 'topdata:better-search:synonyms:list',
     description: 'Lists all synonym mappings stored in the database'
 )]
 class ListSynonymsCommand extends AbstractTopdataCommand

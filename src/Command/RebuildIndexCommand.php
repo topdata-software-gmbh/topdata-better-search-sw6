@@ -14,7 +14,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
 
 #[AsCommand(
-    name: 'tdbs:index:rebuild',
+    name: 'topdata:better-search:index:rebuild',
     description: 'Rebuilds search indices for configured custom search backends'
 )]
 class RebuildIndexCommand extends AbstractTopdataCommand

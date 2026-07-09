@@ -11,7 +11,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 
 #[AsCommand(
-    name: 'tdbs:status',
+    name: 'topdata:better-search:status',
     description: 'Diagnoses profile parsing, database connection health, and A/B configurations'
 )]
 class StatusConfigCommand extends AbstractTopdataCommand

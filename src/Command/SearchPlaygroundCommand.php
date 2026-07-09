@@ -22,7 +22,7 @@ use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
 use Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory;
 
 #[AsCommand(
-    name: 'tdbs:search',
+    name: 'topdata:better-search:search',
     description: 'Executes a playground search query against a specific search profile'
 )]
 class SearchPlaygroundCommand extends AbstractTopdataCommand

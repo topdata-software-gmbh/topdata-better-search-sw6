@@ -12,7 +12,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:clear',
+    name: 'topdata:better-search:synonyms:clear',
     description: 'Bulk purges all active synonym mappings from the database'
 )]
 class ClearSynonymsCommand extends AbstractTopdataCommand

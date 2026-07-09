@@ -160,65 +160,65 @@ The listing page shows all search terms that returned no products, with columns 
 
 ## Command Reference
 
-All commands use the `tdbs:` prefix and output styled via `CliLogger` from `topdata/topdata-foundation-sw6`.
+All commands use the `topdata:better-search:` prefix and output styled via `CliLogger` from `topdata/topdata-foundation-sw6`.
 
 ### Diagnostics & Testing
 
 ```bash
 # Verify profile load success and connection health checks
-php bin/console tdbs:status
+php bin/console topdata:better-search:status
 
 # Query test directly from terminal using the first active profile
-php bin/console tdbs:search "jacket"
+php bin/console topdata:better-search:search "jacket"
 
 # Query test specifying a custom profile strategy
-php bin/console tdbs:search "jacket" --profile=semantic_hybrid
+php bin/console topdata:better-search:search "jacket" --profile=semantic_hybrid
 
 # Resolve and display product names for returned IDs
-php bin/console tdbs:search "jacket" --profile=semantic_hybrid --resolve-products
+php bin/console topdata:better-search:search "jacket" --profile=semantic_hybrid --resolve-products
 ```
 
 ### Index Management
 
 ```bash
 # Rebuild indices for all configured custom search backends
-php bin/console tdbs:index:rebuild --limit=100
+php bin/console topdata:better-search:index:rebuild --limit=100
 ```
 
 ### Synonym Management
 
 ```bash
 # Validate a synonym mapping file
-php bin/console tdbs:synonyms:validate synonyms.txt
+php bin/console topdata:better-search:synonyms:validate synonyms.txt
 
 # Dry-run import (validate without persisting)
-php bin/console tdbs:synonyms:import synonyms.txt --dry-run
+php bin/console topdata:better-search:synonyms:import synonyms.txt --dry-run
 
 # Import synonym mappings
-php bin/console tdbs:synonyms:import synonyms.txt
+php bin/console topdata:better-search:synonyms:import synonyms.txt
 
 # List all synonym mappings
-php bin/console tdbs:synonyms:list --limit=50
-php bin/console tdbs:synonyms:list --filter="papier"
+php bin/console topdata:better-search:synonyms:list --limit=50
+php bin/console topdata:better-search:synonyms:list --filter="papier"
 
 # Export to a file
-php bin/console tdbs:synonyms:export backup.txt
+php bin/console topdata:better-search:synonyms:export backup.txt
 
 # Delete a specific synonym
-php bin/console tdbs:synonyms:delete "wc-papier"
+php bin/console topdata:better-search:synonyms:delete "wc-papier"
 
 # Clear all synonyms (with interactive confirmation)
-php bin/console tdbs:synonyms:clear
-php bin/console tdbs:synonyms:clear --force
+php bin/console topdata:better-search:synonyms:clear
+php bin/console topdata:better-search:synonyms:clear --force
 
 ### AI-Assisted Synonym Management
 
 ```bash
 # Query the active AI Provider and get synonym suggestions for "jacket"
-php bin/console tdbs:synonyms:generate-ai "jacket"
+php bin/console topdata:better-search:synonyms:generate-ai "jacket"
 
 # Generate synonyms and bypass confirmation to save directly to DB
-php bin/console tdbs:synonyms:generate-ai "wc-papier" --force
+php bin/console topdata:better-search:synonyms:generate-ai "wc-papier" --force
 ```
 
 ---

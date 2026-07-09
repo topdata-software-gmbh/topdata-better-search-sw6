@@ -14,7 +14,7 @@ documentType: IMPLEMENTATION_REPORT
 ---
 
 ## 1. Summary
-The implementation plan for search profiles and A/B testing was successfully executed. The plugin has been extended with multi-file YAML configurations with validation, a dynamic A/B routing engine, cookie variation controls gated on A/B test status, backwards-compatible zero-result tracking, per-query profiling with sales channel attribution, and two new commands (`tdbs:status` and `tdbs:search`) for advanced diagnostics.
+The implementation plan for search profiles and A/B testing was successfully executed. The plugin has been extended with multi-file YAML configurations with validation, a dynamic A/B routing engine, cookie variation controls gated on A/B test status, backwards-compatible zero-result tracking, per-query profiling with sales channel attribution, and two new commands (`topdata:better-search:status` and `topdata:better-search:search`) for advanced diagnostics.
 
 ## 2. Files Changed
 
@@ -23,8 +23,8 @@ The implementation plan for search profiles and A/B testing was successfully exe
 - `src/Service/ProfileRegistry.php`: Handles parsing of connections from `config.yaml` and mapping profile rules dynamically, with YAML validation and error reporting.
 - `src/Service/ProfileResolver.php`: Handles distribution and request bucketing algorithms.
 - `src/Subscriber/CacheVariationSubscriber.php`: Sets variation cookie and conditionally adds `Vary: Cookie` only when A/B testing is active, preserving HTTP cache during normal operation.
-- `src/Command/StatusConfigCommand.php`: `tdbs:status` diagnostics command (profile parsing, connection health, A/B config).
-- `src/Command/SearchPlaygroundCommand.php`: `tdbs:search` playground command with optional `--resolve-products` flag.
+- `src/Command/StatusConfigCommand.php`: `topdata:better-search:status` diagnostics command (profile parsing, connection health, A/B config).
+- `src/Command/SearchPlaygroundCommand.php`: `topdata:better-search:search` playground command with optional `--resolve-products` flag.
 
 ### Modified Files
 - `src/Route/DecoratedProductSearchRoute.php`: Overhauled search loading logic to route requests through active search profiles, inject options, and log execution metadata. **Retains** existing `logZeroSearchResult` for backward compatibility with the `tdbs_zero_search` admin panel module.
@@ -49,25 +49,25 @@ The implementation plan for search profiles and A/B testing was successfully exe
 ## 5. Technical Decisions
 - **Shopware criteria extensions:** Leveraged `$criteria->addExtension()` over signature modification to preserve standard interfaces and comply with SOLID rules.
 - **Attribute routing/wiring:** Standardized on Symfony 7.4 Autowire/Autoconfigure attributes to eliminate boilerplate XML registration (plus the single required `ProfileRegistry` binding).
-- **YAML validation at boot:** `ProfileRegistry` validates profile structure and A/B distribution references during construction, with errors surfaced via `getValidationErrors()` for `tdbs:status`.
+- **YAML validation at boot:** `ProfileRegistry` validates profile structure and A/B distribution references during construction, with errors surfaced via `getValidationErrors()` for `topdata:better-search:status`.
 - **Sales channel context factory:** Uses the concrete `SalesChannelContextFactory` service via the container (not the deprecated `AbstractSalesChannelContextFactory`), ensuring SW 6.7 compatibility.
 - **HTTP health checks:** Uses Symfony's `HttpClientInterface` instead of `ext-curl` for portability.
 
 ## 6. Testing Notes
 - **PHP lint:** `php -l` passed on all 8 created/modified PHP files (no syntax errors).
 - **services.xml:** Added `%kernel.project_dir%` binding so `ProfileRegistry` resolves `string $projectDir` under autowiring.
-- **Wiring verification:** `tdbs:status` autowires `HttpClientInterface` (Shopware's `http_client` service); `tdbs:search` mirrors the existing `RebuildIndexCommand` `EntityRepository $productRepository` injection pattern (already proven in this plugin).
-- **YAML validation:** `ProfileRegistry::validateProfile()` and `validateAbDistribution()` reject missing `pipeline` keys and A/B references to non-existent profiles; errors are reported via `getValidationErrors()` consumed by `tdbs:status`.
-- **Runtime config note:** The `config/tdbs/` and `config/tdbs/profiles/` directories live at the Shopware **project root** (not the plugin). They must be created there before `tdbs:status` reports a non-empty configuration. Full runtime `tdbs:status` / `tdbs:search` execution requires a booted Shopware instance with the foundation dependency installed, so it was not executed in the plugin-only workspace.
+- **Wiring verification:** `topdata:better-search:status` autowires `HttpClientInterface` (Shopware's `http_client` service); `topdata:better-search:search` mirrors the existing `RebuildIndexCommand` `EntityRepository $productRepository` injection pattern (already proven in this plugin).
+- **YAML validation:** `ProfileRegistry::validateProfile()` and `validateAbDistribution()` reject missing `pipeline` keys and A/B references to non-existent profiles; errors are reported via `getValidationErrors()` consumed by `topdata:better-search:status`.
+- **Runtime config note:** The `config/tdbs/` and `config/tdbs/profiles/` directories live at the Shopware **project root** (not the plugin). They must be created there before `topdata:better-search:status` reports a non-empty configuration. Full runtime `topdata:better-search:status` / `topdata:better-search:search` execution requires a booted Shopware instance with the foundation dependency installed, so it was not executed in the plugin-only workspace.
 
 ## 7. Usage Examples
-- `php bin/console tdbs:status`
-- `php bin/console tdbs:search "jacket"`
-- `php bin/console tdbs:search "jacket" --profile=semantic_hybrid --resolve-products`
+- `php bin/console topdata:better-search:status`
+- `php bin/console topdata:better-search:search "jacket"`
+- `php bin/console topdata:better-search:search "jacket" --profile=semantic_hybrid --resolve-products`
 
 ## 8. Documentation Updates
 - Updated `README.md` with module overview/features wording, a new "Configuration Strategy" section (directory layout, `config.yaml` and profile examples), and a "Diagnostics & Testing" command block.
 
 ## 9. Next Steps
-- Create `config/tdbs/config.yaml` and `config/tdbs/profiles/*.yaml` at the Shopware project root and run `php bin/console database:migrate TopdataBetterSearchSW6 --all`, then exercise `tdbs:status` / `tdbs:search` against a live instance.
+- Create `config/tdbs/config.yaml` and `config/tdbs/profiles/*.yaml` at the Shopware project root and run `php bin/console database:migrate TopdataBetterSearchSW6 --all`, then exercise `topdata:better-search:status` / `topdata:better-search:search` against a live instance.
 - Implement Playwright E2E tests to verify cookie assignment and `Vary: Cookie` header behaviors in a real browser.

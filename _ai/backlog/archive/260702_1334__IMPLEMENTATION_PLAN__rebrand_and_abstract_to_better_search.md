@@ -16,7 +16,7 @@ The current plugin (`TopdataElasticsearchHacksSW6`) is tightly coupled to Elasti
 ## 2. Executive Summary of the Solution
 This plan migrates the plugin to `topdata-better-search-sw6`, renaming all namespaces, base classes, translation snippets, and administration paths. All custom database tables are recreated under the clean prefix `tdbs_` (with a migration script to copy existing data where possible). 
 
-Rather than overriding Elasticsearch directly, we will implement **Approach 3: Decorated Sales Channel Routes**. By decorating `ProductSearchRoute` and `ProductSuggestRoute`, we intercept storefront queries before they touch the database. We introduce an elegant `SearchBackendInterface` supporting multiple swappable backends (such as `ShopwareCoreBackend`, `MeilisearchBackend`, and `QdrantBackend`). We'll implement a console-first indexing mechanism via `tdbs:index:rebuild` and refactor the synonym/zero-search administration using custom commands using `CliLogger`.
+Rather than overriding Elasticsearch directly, we will implement **Approach 3: Decorated Sales Channel Routes**. By decorating `ProductSearchRoute` and `ProductSuggestRoute`, we intercept storefront queries before they touch the database. We introduce an elegant `SearchBackendInterface` supporting multiple swappable backends (such as `ShopwareCoreBackend`, `MeilisearchBackend`, and `QdrantBackend`). We'll implement a console-first indexing mechanism via `topdata:better-search:index:rebuild` and refactor the synonym/zero-search administration using custom commands using `CliLogger`.
 
 ## 3. Project Environment Details
 - **Project Name**: SW6.7 Plugin (`topdata-better-search-sw6`)
@@ -894,7 +894,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:clear',
+    name: 'topdata:better-search:synonyms:clear',
     description: 'Bulk purges all active synonym mappings from the database'
 )]
 class ClearSynonymsCommand extends TopdataFoundationSW6
@@ -959,7 +959,7 @@ use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
 
 #[AsCommand(
-    name: 'tdbs:index:rebuild',
+    name: 'topdata:better-search:index:rebuild',
     description: 'Rebuilds search indices for configured custom search backends'
 )]
 class RebuildIndexCommand extends TopdataFoundationSW6
@@ -1174,8 +1174,8 @@ Register backends, registries, command services, decorated routes, and autowire 
    - Run `php bin/console database:migrate TopdataBetterSearchSW6 --all`.
    - Verify that tables `tdbs_zero_search` and `tdbs_synonym` are created and any existing data has been copied.
 2. **CLI Output Testing**:
-   - Run `php bin/console tdbs:index:rebuild --limit=10`. Verify the execution path uses `CliLogger` format with section, title, and progress updates.
-   - Run `php bin/console tdbs:synonyms:clear`. Ensure safe interactive prompt behavior.
+   - Run `php bin/console topdata:better-search:index:rebuild --limit=10`. Verify the execution path uses `CliLogger` format with section, title, and progress updates.
+   - Run `php bin/console topdata:better-search:synonyms:clear`. Ensure safe interactive prompt behavior.
 3. **Route Interception Verification**:
    - Execute storefront searches with zero results and verify matching entries are logged into `tdbs_zero_search`.
 

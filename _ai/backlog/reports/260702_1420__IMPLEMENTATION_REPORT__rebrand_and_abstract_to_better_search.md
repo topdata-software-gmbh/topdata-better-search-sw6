@@ -60,13 +60,13 @@ Successfully completed all 8 phases of the plan to rebrand and abstract the plug
 - `src/Route/DecoratedProductSuggestRoute.php` — decorates `AbstractProductSuggestRoute`
 
 ### Phase 6: Console Commands
-- `src/Command/RebuildIndexCommand.php` — `tdbs:index:rebuild`
-- `src/Command/ClearSynonymsCommand.php` — `tdbs:synonyms:clear`
-- `src/Command/DeleteSynonymCommand.php` — `tdbs:synonyms:delete`
-- `src/Command/ExportSynonymsCommand.php` — `tdbs:synonyms:export`
-- `src/Command/ImportSynonymsCommand.php` — `tdbs:synonyms:import`
-- `src/Command/ListSynonymsCommand.php` — `tdbs:synonyms:list`
-- `src/Command/ValidateSynonymsCommand.php` — `tdbs:synonyms:validate`
+- `src/Command/RebuildIndexCommand.php` — `topdata:better-search:index:rebuild`
+- `src/Command/ClearSynonymsCommand.php` — `topdata:better-search:synonyms:clear`
+- `src/Command/DeleteSynonymCommand.php` — `topdata:better-search:synonyms:delete`
+- `src/Command/ExportSynonymsCommand.php` — `topdata:better-search:synonyms:export`
+- `src/Command/ImportSynonymsCommand.php` — `topdata:better-search:synonyms:import`
+- `src/Command/ListSynonymsCommand.php` — `topdata:better-search:synonyms:list`
+- `src/Command/ValidateSynonymsCommand.php` — `topdata:better-search:synonyms:validate`
 
 ### Phase 7: Administration UI
 - `src/Resources/app/administration/src/module/topdata-better-search/index.ts` — new module

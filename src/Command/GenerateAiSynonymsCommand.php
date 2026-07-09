@@ -14,7 +14,7 @@ use Topdata\TopdataBetterSearchSW6\Service\AiSynonymGenerator;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
 #[AsCommand(
-    name: 'tdbs:synonyms:generate-ai',
+    name: 'topdata:better-search:synonyms:generate-ai',
     description: 'Generates related search synonyms using LLM context'
 )]
 class GenerateAiSynonymsCommand extends AbstractTopdataCommand
