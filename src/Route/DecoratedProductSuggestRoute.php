@@ -3,6 +3,7 @@
 namespace Topdata\TopdataBetterSearchSW6\Route;
 
 use Shopware\Core\Content\Product\SalesChannel\Suggest\AbstractProductSuggestRoute;
+use Shopware\Core\Content\Product\SalesChannel\Suggest\ProductSuggestRoute;
 use Shopware\Core\Content\Product\SalesChannel\Suggest\ProductSuggestRouteResponse;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
@@ -16,18 +17,18 @@ use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileResolver;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 
-#[AsDecorator(decorates: AbstractProductSuggestRoute::class)]
+#[AsDecorator(decorates: ProductSuggestRoute::class)]
 class DecoratedProductSuggestRoute extends AbstractProductSuggestRoute
 {
     public function __construct(
-        private readonly AbstractProductSuggestRoute $decorated,
+        private readonly ProductSuggestRoute $decorated,
         private readonly SearchBackendRegistry $backendRegistry,
         private readonly SystemConfigService $systemConfigService,
         private readonly ProfileResolver $profileResolver,
         private readonly ProfileRegistry $profileRegistry
     ) {}
 
-    public function getDecorated(): AbstractProductSuggestRoute
+    public function getDecorated(): ProductSuggestRoute
     {
         return $this->decorated;
     }

@@ -4,6 +4,7 @@ namespace Topdata\TopdataBetterSearchSW6\Route;
 
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Content\Product\SalesChannel\Search\AbstractProductSearchRoute;
+use Shopware\Core\Content\Product\SalesChannel\Search\ProductSearchRoute;
 use Shopware\Core\Content\Product\SalesChannel\Search\ProductSearchRouteResponse;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
@@ -18,11 +19,11 @@ use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileResolver;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 
-#[AsDecorator(decorates: AbstractProductSearchRoute::class)]
+#[AsDecorator(decorates: ProductSearchRoute::class)]
 class DecoratedProductSearchRoute extends AbstractProductSearchRoute
 {
     public function __construct(
-        private readonly AbstractProductSearchRoute $decorated,
+        private readonly ProductSearchRoute $decorated,
         private readonly SearchBackendRegistry $backendRegistry,
         private readonly SystemConfigService $systemConfigService,
         private readonly Connection $connection,
@@ -30,7 +31,7 @@ class DecoratedProductSearchRoute extends AbstractProductSearchRoute
         private readonly ProfileRegistry $profileRegistry
     ) {}
 
-    public function getDecorated(): AbstractProductSearchRoute
+    public function getDecorated(): ProductSearchRoute
     {
         return $this->decorated;
     }

@@ -9,7 +9,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\Context;
-use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Command\AbstractTopdataCommand;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
 
@@ -17,7 +17,7 @@ use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
     name: 'tdbs:index:rebuild',
     description: 'Rebuilds search indices for configured custom search backends'
 )]
-class RebuildIndexCommand extends TopdataFoundationSW6
+class RebuildIndexCommand extends AbstractTopdataCommand
 {
     public function __construct(
         private readonly SearchBackendRegistry $backendRegistry,
@@ -29,11 +29,6 @@ class RebuildIndexCommand extends TopdataFoundationSW6
     protected function configure(): void
     {
         $this->addOption('limit', 'l', InputOption::VALUE_REQUIRED, 'Processing step limit size', '100');
-    }
-
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

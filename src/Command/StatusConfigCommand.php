@@ -6,7 +6,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Command\AbstractTopdataCommand;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 
@@ -14,18 +14,13 @@ use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
     name: 'tdbs:status',
     description: 'Diagnoses profile parsing, database connection health, and A/B configurations'
 )]
-class StatusConfigCommand extends TopdataFoundationSW6
+class StatusConfigCommand extends AbstractTopdataCommand
 {
     public function __construct(
         private readonly ProfileRegistry $profileRegistry,
         private readonly HttpClientInterface $httpClient
     ) {
         parent::__construct();
-    }
-
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Command\AbstractTopdataCommand;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
@@ -15,7 +15,7 @@ use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
     name: 'tdbs:synonyms:clear',
     description: 'Bulk purges all active synonym mappings from the database'
 )]
-class ClearSynonymsCommand extends TopdataFoundationSW6
+class ClearSynonymsCommand extends AbstractTopdataCommand
 {
     public function __construct(private readonly SynonymService $synonymService)
     {
@@ -25,11 +25,6 @@ class ClearSynonymsCommand extends TopdataFoundationSW6
     protected function configure(): void
     {
         $this->addOption('force', null, InputOption::VALUE_NONE, 'Skip the interactive confirmation safety check');
-    }
-
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

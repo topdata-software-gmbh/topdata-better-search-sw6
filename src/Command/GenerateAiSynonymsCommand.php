@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
-use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Command\AbstractTopdataCommand;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\AiSynonymGenerator;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
@@ -17,7 +17,7 @@ use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
     name: 'tdbs:synonyms:generate-ai',
     description: 'Generates related search synonyms using LLM context'
 )]
-class GenerateAiSynonymsCommand extends TopdataFoundationSW6
+class GenerateAiSynonymsCommand extends AbstractTopdataCommand
 {
     public function __construct(
         private readonly AiSynonymGenerator $aiSynonymGenerator,
@@ -30,11 +30,6 @@ class GenerateAiSynonymsCommand extends TopdataFoundationSW6
     {
         $this->addArgument('term', InputArgument::REQUIRED, 'The primary e-commerce search term to evaluate');
         $this->addOption('force', null, InputOption::VALUE_NONE, 'Persist generated synonyms directly to database without interactive confirmation');
-    }
-
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

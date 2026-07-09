@@ -6,7 +6,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Command\AbstractTopdataCommand;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
@@ -14,7 +14,7 @@ use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
     name: 'tdbs:synonyms:validate',
     description: 'Validates a synonym mapping file format'
 )]
-class ValidateSynonymsCommand extends TopdataFoundationSW6
+class ValidateSynonymsCommand extends AbstractTopdataCommand
 {
     public function __construct(private readonly SynonymService $synonymService)
     {
@@ -24,11 +24,6 @@ class ValidateSynonymsCommand extends TopdataFoundationSW6
     protected function configure(): void
     {
         $this->addArgument('file', InputArgument::REQUIRED, 'Path to the synonym file to validate');
-    }
-
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

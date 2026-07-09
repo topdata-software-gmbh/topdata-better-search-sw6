@@ -7,7 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Command\AbstractTopdataCommand;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
 
@@ -15,7 +15,7 @@ use Topdata\TopdataBetterSearchSW6\Service\SynonymService;
     name: 'tdbs:synonyms:import',
     description: 'Imports synonym mappings from a file'
 )]
-class ImportSynonymsCommand extends TopdataFoundationSW6
+class ImportSynonymsCommand extends AbstractTopdataCommand
 {
     public function __construct(private readonly SynonymService $synonymService)
     {
@@ -26,11 +26,6 @@ class ImportSynonymsCommand extends TopdataFoundationSW6
     {
         $this->addArgument('file', InputArgument::REQUIRED, 'Input file path');
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Only validate and count, do not persist');
-    }
-
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

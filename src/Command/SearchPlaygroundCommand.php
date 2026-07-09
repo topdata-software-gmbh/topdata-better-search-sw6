@@ -15,22 +15,24 @@ use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\Context;
 use Doctrine\DBAL\Connection;
-use Topdata\TopdataFoundationSW6\TopdataFoundationSW6;
+use Topdata\TopdataFoundationSW6\Command\AbstractTopdataCommand;
 use Topdata\TopdataFoundationSW6\Util\CliLogger;
 use Topdata\TopdataBetterSearchSW6\Service\ProfileRegistry;
 use Topdata\TopdataBetterSearchSW6\Service\SearchBackendRegistry;
+use Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory;
 
 #[AsCommand(
     name: 'tdbs:search',
     description: 'Executes a playground search query against a specific search profile'
 )]
-class SearchPlaygroundCommand extends TopdataFoundationSW6
+class SearchPlaygroundCommand extends AbstractTopdataCommand
 {
     public function __construct(
         private readonly ProfileRegistry $profileRegistry,
         private readonly SearchBackendRegistry $backendRegistry,
         private readonly Connection $connection,
-        private readonly EntityRepository $productRepository
+        private readonly EntityRepository $productRepository,
+        private readonly SalesChannelContextFactory $contextFactory
     ) {
         parent::__construct();
     }
@@ -40,11 +42,6 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
         $this->addArgument('term', InputArgument::REQUIRED, 'The search term to query');
         $this->addOption('profile', 'p', InputOption::VALUE_REQUIRED, 'Target search profile ID (from profiles/)');
         $this->addOption('resolve-products', null, InputOption::VALUE_NONE, 'Resolve and display product names for returned IDs');
-    }
-
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        CliLogger::setCliStyle($this->getCliStyle());
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -172,9 +169,7 @@ class SearchPlaygroundCommand extends TopdataFoundationSW6
 
             $salesChannelId = Uuid::fromBytesToHex($salesChannel['id']);
 
-            /** @var \Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory $contextFactory */
-            $contextFactory = $this->container->get('Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory');
-            return $contextFactory->create(Uuid::randomHex(), $salesChannelId);
+            return $this->contextFactory->create(Uuid::randomHex(), $salesChannelId);
         } catch (\Throwable $e) {
             return null;
         }
