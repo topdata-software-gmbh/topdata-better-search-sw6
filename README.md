@@ -178,6 +178,19 @@ php bin/console topdata:better-search:search "jacket" --profile=semantic_hybrid
 php bin/console topdata:better-search:search "jacket" --profile=semantic_hybrid --resolve-products
 ```
 
+### Search Profiles Management
+
+```bash
+# List all loaded search profiles, displaying description and dynamic split info
+php bin/console topdata:better-search:profiles:list
+
+# Inspect structural configurations (pipeline backends and option parameters) for a profile
+php bin/console topdata:better-search:profiles:show semantic_hybrid
+
+# Validate configuration syntaxes and cross-references for semantic correctness
+php bin/console topdata:better-search:profiles:validate
+```
+
 ### Index Management
 
 ```bash

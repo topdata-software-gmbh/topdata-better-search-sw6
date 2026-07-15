@@ -3,7 +3,8 @@ filename: "_ai/backlog/active/260709_1400__IMPLEMENTATION_PLAN__search_profiles_
 title: "Implement Search Profiles Management Commands"
 createdAt: 2026-07-09 14:00
 updatedAt: 2026-07-09 14:00
-status: draft
+status: completed
+completedAt: 2026-07-09 13:23
 priority: medium
 tags: [cli, search-profiles, diagnostics, management]
 estimatedComplexity: moderate
@@ -390,6 +391,7 @@ updatedAt: 2026-07-09 14:00
 planFile: "_ai/backlog/active/260709_1400__IMPLEMENTATION_PLAN__search_profiles_management_commands.md"
 project: "SW6.7 Plugin"
 status: completed
+completedAt: 2026-07-09 13:23
 filesCreated: 3
 filesModified: 1
 filesDeleted: 0
