@@ -30,11 +30,11 @@ Component.register('topdata-better-search-list', {
                 @column-sort="onSortColumn"
             >
                 <template #column-lastSearchedAt="{ item }">
-                    {{ item.lastSearchedAt | date(true) }}
+                    <sw-time-ago v-if="item.lastSearchedAt" :date="item.lastSearchedAt" />
                 </template>
 
                 <template #column-createdAt="{ item }">
-                    {{ item.createdAt | date(true) }}
+                    <sw-time-ago v-if="item.createdAt" :date="item.createdAt" />
                 </template>
             </sw-entity-listing>
         </template>
